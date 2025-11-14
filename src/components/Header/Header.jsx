@@ -240,6 +240,7 @@ import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '../../lib/supabase';
 import { User, LogOut } from 'lucide-react';
+import cclogo from "../../assets/craft-connect-logo.svg";
 
 function Header() {
   const navigate = useNavigate();
@@ -276,11 +277,12 @@ function Header() {
             className="flex items-center gap-2 cursor-pointer" 
             onClick={() => navigate('/')}
           >
-            <div className="w-10 h-10 bg-amber-500 rounded-lg flex items-center justify-center">
-              <span className="text-white font-bold text-xl">C</span>
+              <div className="flex items-center justify-center space-x-2">
+                <img src={cclogo} alt="craft-connect-logo" className='w-full h-14'/>
+              </div>
+            <div className="font-bold text-xl text-gray-900">CraftConnect</div>
             </div>
-            <span className="font-bold text-xl text-gray-900">CraftConnect</span>
-          </div>
+          
 
           {/* Navigation */}
           <nav className="hidden md:flex items-center gap-8">
