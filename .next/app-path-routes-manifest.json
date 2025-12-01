@@ -1,0 +1,10 @@
+{
+  "/api/proxy/[...path]/route": "/api/proxy/[...path]",
+  "/_not-found/page": "/_not-found",
+  "/page": "/",
+  "/500/page": "/500",
+  "/sign-in/page": "/sign-in",
+  "/profile/page": "/profile",
+  "/dashboard/page": "/dashboard",
+  "/sign-up/page": "/sign-up"
+}

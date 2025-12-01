@@ -1,12 +1,13 @@
-import React from 'react';
-import { CheckCircle, CreditCard, Briefcase, Shield } from 'lucide-react';
+import React from "react";
+import { CheckCircle, CreditCard, Briefcase, Shield } from "lucide-react";
 
 const WhyTrustSection = () => {
   const features = [
     {
       icon: CheckCircle,
       title: "Verified Skills",
-      description: "AI-powered ratings ensure artisans' expertise is authentic.",
+      description:
+        "AI-powered ratings ensure artisans' expertise is authentic.",
       color: "green",
     },
     {
@@ -41,10 +42,10 @@ const WhyTrustSection = () => {
   };
 
   return (
-    <section className="px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto my-24">
+    <section className="px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto my-12 md:my-16 lg:my-24">
       {/* Heading */}
-      <div className="text-center mb-12">
-        <h2 className="text-3xl md:text-4xl font-bold text-gray-900">
+      <div className="text-center mb-8 md:mb-12">
+        <h2 className="text-2xl sm:text-3xl md:text-4xl font-bold text-gray-900">
           Why Trust Craft Connect
         </h2>
       </div>

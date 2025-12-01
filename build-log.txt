@@ -1,0 +1,33 @@
+
+> craft-connect@0.0.0 build
+> next build
+
+ ⚠ Warning: Found multiple lockfiles. Selecting C:\Users\USER\pnpm-lock.yaml.
+   Consider removing the lockfiles at:
+   * C:\Users\USER\Desktop\craft\craft-connect\package-lock.json
+
+   ▲ Next.js 15.4.3
+   - Environments: .env
+
+   Creating an optimized production build ...
+[baseline-browser-mapping] The data in this module is over two months old.  To ensure accurate Baseline data, please update: `npm i baseline-browser-mapping@latest -D`
+ ✓ Compiled successfully in 9.0s
+   Linting and checking validity of types ...
+
+ ⚠ The Next.js plugin was not detected in your ESLint configuration. See https://nextjs.org/docs/app/api-reference/config/eslint#migrating-existing-config
+(node:19104) [MODULE_TYPELESS_PACKAGE_JSON] Warning: Module type of file:///C:/Users/USER/Desktop/craft/craft-connect/eslint.config.js?mtime=1764513139068 is not specified and it doesn't parse as CommonJS.
+Reparsing as ES module because module syntax was detected. This incurs a performance overhead.
+To eliminate this warning, add "type": "module" to C:\Users\USER\Desktop\craft\craft-connect\package.json.
+(Use `node --trace-warnings ...` to show where the warning was created)
+
+./src/contexts/AuthContext.jsx
+95:5  Warning: Unused eslint-disable directive (no problems were reported from 'react-hooks/exhaustive-deps').
+
+info  - Need to disable some ESLint rules? Learn more here: https://nextjs.org/docs/app/api-reference/config/eslint#disabling-rules
+   Collecting page data ...
+   Generating static pages (0/8) ...
+[Error: Minified React error #31; visit https://reactjs.org/docs/error-decoder.html?invariant=31&args[]=object%20with%20keys%20%7B%24%24typeof%2C%20type%2C%20key%2C%20ref%2C%20props%7D for the full message or use the non-minified dev environment for full errors and additional helpful warnings.]
+Error occurred prerendering page "/404". Read more: https://nextjs.org/docs/messages/prerender-error
+[Error: Minified React error #31; visit https://reactjs.org/docs/error-decoder.html?invariant=31&args[]=object%20with%20keys%20%7B%24%24typeof%2C%20type%2C%20key%2C%20ref%2C%20props%7D for the full message or use the non-minified dev environment for full errors and additional helpful warnings.]
+Export encountered an error on /_error: /404, exiting the build.
+ ⨯ Next.js build worker exited with code: 1 and signal: null
