@@ -1,0 +1,3 @@
+module.exports=[45244,(a,b,c)=>{let{createClientModuleProxy:d}=a.r(95059);a.n(d("[project]/Desktop/craft/craft-connect/node_modules/next/dist/client/components/builtin/global-error.js <module evaluation>"))},44725,(a,b,c)=>{let{createClientModuleProxy:d}=a.r(95059);a.n(d("[project]/Desktop/craft/craft-connect/node_modules/next/dist/client/components/builtin/global-error.js"))},27204,a=>{"use strict";a.i(45244);var b=a.i(44725);a.n(b)}];
+
+//# sourceMappingURL=b1c1a_next_dist_client_components_builtin_global-error_af76e02d.js.map
