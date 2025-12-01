@@ -127,7 +127,6 @@
 
 // export default Header;
 
-
 // import React, { useEffect, useState } from 'react';
 // import { useNavigate } from 'react-router-dom';
 // import { supabase } from '../../lib/supabase';
@@ -234,110 +233,216 @@
 
 // export default Header;
 
+"use client";
 
-
-import React, { useEffect, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { supabase } from '../../lib/supabase';
-import { User, LogOut } from 'lucide-react';
-import cclogo from "../../assets/craft-connect-logo.svg";
+import React, { useState } from "react";
+import { useRouter } from "next/navigation";
+import Image from "next/image";
+import { useAuth } from "../../contexts/AuthContext";
+import { User, LogOut, ChevronDown, Globe } from "lucide-react";
+import cclogo from "../../assets/cc-logo.svg";
+import dropdown from "../../assets/dropdown.svg";
+import globeIcon from "../../assets/globe.svg";
 
 function Header() {
-  const navigate = useNavigate();
-  const [user, setUser] = useState(null);
-  const [loading, setLoading] = useState(true);
+  const router = useRouter();
+  const { user, loading, logout } = useAuth();
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
-  useEffect(() => {
-    // Get initial session
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      setUser(session?.user ?? null);
-      setLoading(false);
-    });
-
-    // Listen for auth changes
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
-      setUser(session?.user ?? null);
-    });
-
-    return () => subscription.unsubscribe();
-  }, []);
-
-  const handleSignOut = async () => {
-    await supabase.auth.signOut();
-    setUser(null);
-    navigate('/');
+  const handleSignOut = () => {
+    logout();
   };
 
   return (
-    <header className="bg-white shadow-sm sticky top-0 z-50">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
-        <div className="flex justify-between items-center">
+    <header className="bg-white sticky top-0 z-50">
+      <div className="max-w-screen-xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div className="flex justify-between items-center h-16 md:h-20">
           {/* Logo */}
           <div 
             className="flex items-center gap-2 cursor-pointer" 
-            onClick={() => navigate('/')}
+            onClick={() => router.push("/")}
           >
-              <div className="flex items-center justify-center space-x-2">
-                <img src={cclogo} alt="craft-connect-logo" className='w-full h-14'/>
-              </div>
-            <div className="font-bold text-xl text-gray-900">CraftConnect</div>
+            <Image
+              src={cclogo}
+              alt="CraftConnect Logo"
+              width={40}
+              height={40}
+              className="h-8 md:h-10 w-auto"
+              unoptimized
+            />
+            <span className="font-bold text-gray-900 text-lg md:text-xl">
+              CraftConnect
+            </span>
             </div>
           
-
-          {/* Navigation */}
-          <nav className="hidden md:flex items-center gap-8">
-            <a href="#" className="text-gray-700 hover:text-amber-600 transition-colors">
-              Landing
+          {/* Desktop Navigation */}
+          <nav className="hidden md:flex items-center gap-4 lg:gap-6">
+            <div className="flex items-center gap-1">
+              <a
+                href="#"
+                className="text-gray-700 hover:text-amber-600 text-sm font-medium transition-colors"
+              >
+                Learning
             </a>
-            <a href="#" className="text-gray-700 hover:text-amber-600 transition-colors">
+              <Image
+                src={dropdown}
+                alt="dropdown"
+                width={16}
+                height={16}
+                className="w-4 h-4"
+                unoptimized
+              />
+            </div>
+            <div className="flex items-center gap-1">
+              <a
+                href="#"
+                className="text-gray-700 hover:text-amber-600 text-sm font-medium transition-colors"
+              >
               Explore
             </a>
-            <a href="#" className="text-gray-700 hover:text-amber-600 transition-colors">
+              <Image
+                src={dropdown}
+                alt="dropdown"
+                width={16}
+                height={16}
+                className="w-4 h-4"
+                unoptimized
+              />
+            </div>
+            <div className="flex items-center gap-1">
+              <a
+                href="#"
+                className="text-gray-700 hover:text-amber-600 text-sm font-medium transition-colors"
+              >
               English
             </a>
-          </nav>
-
-          {/* Auth Buttons */}
-          <div className="flex items-center gap-4">
+              <Image
+                src={globeIcon}
+                alt="globe"
+                width={16}
+                height={16}
+                className="w-4 h-4"
+                unoptimized
+              />
+            </div>
             {loading ? (
               <div className="w-20 h-8 bg-gray-200 animate-pulse rounded"></div>
             ) : user ? (
-              // Logged in state
               <>
                 <button 
-                  onClick={() => navigate('/profile')}
-                  className="flex items-center gap-2 text-gray-700 hover:text-amber-600 transition-colors font-medium"
+                  onClick={() => router.push("/profile")}
+                  className="flex items-center gap-1 text-gray-700 hover:text-amber-600 text-sm font-medium transition-colors"
                 >
-                  <User className="w-5 h-5" />
-                  <span className="hidden sm:inline">Profile</span>
+                  <span>Sign in</span>
+                  <User className="w-4 h-4" />
                 </button>
                 <button 
                   onClick={handleSignOut}
-                  className="flex items-center gap-2 text-gray-700 hover:text-red-600 transition-colors font-medium"
+                  className="flex items-center gap-2 text-gray-700 hover:text-red-600 transition-colors font-medium text-sm"
                 >
-                  <LogOut className="w-5 h-5" />
-                  <span className="hidden sm:inline">Logout</span>
+                  <LogOut className="w-4 h-4" />
+                  <span className="hidden lg:inline">Logout</span>
                 </button>
               </>
             ) : (
-              // Logged out state
+              <>
+                <div className="flex items-center gap-1">
+                  <button
+                    onClick={() => router.push("/sign-in")}
+                    className="text-gray-700 hover:text-amber-600 text-sm font-medium transition-colors"
+                  >
+                    Sign in
+                  </button>
+                  <User className="w-4 h-4 text-gray-700" />
+                </div>
+                <button
+                  onClick={() => router.push("/sign-up")}
+                  className="bg-[#D6B42F] text-white px-4 py-2 rounded-md text-sm font-medium hover:opacity-90 transition-opacity"
+                >
+                  Join
+                </button>
+              </>
+            )}
+          </nav>
+
+          {/* Mobile Menu Button */}
+          <button
+            onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
+            className="md:hidden text-gray-700 hover:text-amber-600 transition-colors"
+          >
+            <svg
+              className="w-6 h-6"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
+              {isMobileMenuOpen ? (
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M6 18L18 6M6 6l12 12"
+                />
+              ) : (
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M4 6h16M4 12h16M4 18h16"
+                />
+              )}
+            </svg>
+          </button>
+        </div>
+
+        {/* Golden horizontal line */}
+        <div className="h-px bg-amber-500"></div>
+
+        {/* Mobile Navigation */}
+        {isMobileMenuOpen && (
+          <div className="md:hidden border-t border-gray-200 py-4 space-y-3">
+            <a
+              href="#"
+              className="block text-gray-700 hover:text-amber-600 transition-colors"
+            >
+              Learning
+            </a>
+            <a
+              href="#"
+              className="block text-gray-700 hover:text-amber-600 transition-colors"
+            >
+              Explore
+            </a>
+            <a
+              href="#"
+              className="block text-gray-700 hover:text-amber-600 transition-colors"
+            >
+              English
+            </a>
+            {!user && (
               <>
                 <button 
-                  onClick={() => navigate('/sign-in')}
-                  className="text-gray-700 hover:text-amber-600 transition-colors font-medium"
+                  onClick={() => {
+                    router.push("/sign-in");
+                    setIsMobileMenuOpen(false);
+                  }}
+                  className="block w-full text-left text-gray-700 hover:text-amber-600 transition-colors"
                 >
-                  Login
+                  Sign in
                 </button>
                 <button 
-                  onClick={() => navigate('/sign-up')}
-                  className="bg-amber-500 text-white px-6 py-2 rounded-lg font-semibold hover:bg-amber-600 transition-colors"
+                  onClick={() => {
+                    router.push("/sign-up");
+                    setIsMobileMenuOpen(false);
+                  }}
+                  className="w-full bg-[#D6B42F] text-white px-4 py-2 rounded-md text-sm font-medium hover:opacity-90 transition-opacity"
                 >
-                  Sign Up
+                  Join
                 </button>
               </>
             )}
           </div>
-        </div>
+        )}
       </div>
     </header>
   );
