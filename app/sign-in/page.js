@@ -143,7 +143,7 @@ export default function SignInPage() {
           <p className="text-center text-sm text-gray-600">
             Don't have an account?{" "}
             <span
-              onClick={() => router.push("/sign-up")}
+              onClick={() => router.push("/join")}
               className="text-amber-600 font-semibold cursor-pointer hover:underline"
             >
               Sign Up

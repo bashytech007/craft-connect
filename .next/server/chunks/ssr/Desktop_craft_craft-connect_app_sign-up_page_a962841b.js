@@ -1,0 +1,3 @@
+module.exports=[61956,a=>{"use strict";var b=a.i(90408),c=a.i(99397),d=a.i(25e3);function e(){let a=(0,d.useRouter)();return(0,c.useEffect)(()=>{a.replace("/join")},[a]),(0,b.jsx)("div",{className:"min-h-screen bg-gray-50 flex items-center justify-center",children:(0,b.jsx)("div",{className:"text-center",children:(0,b.jsx)("p",{className:"text-gray-600",children:"Redirecting..."})})})}a.s(["default",()=>e,"dynamic",0,"force-dynamic"])}];
+
+//# sourceMappingURL=Desktop_craft_craft-connect_app_sign-up_page_a962841b.js.map
