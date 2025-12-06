@@ -4,8 +4,11 @@
   "/_not-found/page": "/_not-found",
   "/api/proxy/[...path]/route": "/api/proxy/[...path]",
   "/dashboard/page": "/dashboard",
+  "/join/page": "/join",
   "/page": "/",
   "/profile/page": "/profile",
   "/sign-in/page": "/sign-in",
+  "/sign-up/artisan/page": "/sign-up/artisan",
+  "/sign-up/client/page": "/sign-up/client",
   "/sign-up/page": "/sign-up"
 }

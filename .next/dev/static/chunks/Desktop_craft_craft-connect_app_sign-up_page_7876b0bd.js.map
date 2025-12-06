@@ -1,0 +1,6 @@
+{
+  "version": 3,
+  "sources": [],
+  "sections": [
+    {"offset": {"line": 4, "column": 0}, "map": {"version":3,"sources":["file:///C:/Users/USER/Desktop/craft/craft-connect/app/sign-up/page.js"],"sourcesContent":["\"use client\";\n\nimport { useEffect } from \"react\";\nimport { useRouter } from \"next/navigation\";\n\n// Force dynamic rendering\nexport const dynamic = \"force-dynamic\";\n\nexport default function SignUpPage() {\n  const router = useRouter();\n\n  useEffect(() => {\n    // Redirect to the join selection page\n    router.replace(\"/join\");\n  }, [router]);\n\n  return (\n    <div className=\"min-h-screen bg-gray-50 flex items-center justify-center\">\n      <div className=\"text-center\">\n        <p className=\"text-gray-600\">Redirecting...</p>\n      </div>\n    </div>\n  );\n}\n"],"names":[],"mappings":";;;;;;;AAEA;AACA;;;AAHA;;;AAMO,MAAM,UAAU;AAER,SAAS;;IACtB,MAAM,SAAS,IAAA,0LAAS;IAExB,IAAA,kNAAS;gCAAC;YACR,sCAAsC;YACtC,OAAO,OAAO,CAAC;QACjB;+BAAG;QAAC;KAAO;IAEX,qBACE,qOAAC;QAAI,WAAU;kBACb,cAAA,qOAAC;YAAI,WAAU;sBACb,cAAA,qOAAC;gBAAE,WAAU;0BAAgB;;;;;;;;;;;;;;;;AAIrC;GAfwB;;QACP,0LAAS;;;KADF"}}]
+}

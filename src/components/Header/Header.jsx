@@ -356,7 +356,7 @@ function Header() {
                   <User className="w-4 h-4 text-gray-700" />
                 </div>
                 <button
-                  onClick={() => router.push("/sign-up")}
+                  onClick={() => router.push("/join")}
                   className="bg-[#D6B42F] text-white px-4 py-2 rounded-md text-sm font-medium hover:opacity-90 transition-opacity"
                 >
                   Join
@@ -432,7 +432,7 @@ function Header() {
                 </button>
                 <button 
                   onClick={() => {
-                    router.push("/sign-up");
+                    router.push("/join");
                     setIsMobileMenuOpen(false);
                   }}
                   className="w-full bg-[#D6B42F] text-white px-4 py-2 rounded-md text-sm font-medium hover:opacity-90 transition-opacity"

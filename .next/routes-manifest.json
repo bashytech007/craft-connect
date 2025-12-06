@@ -61,6 +61,12 @@
       "namedRegex": "^/dashboard(?:/)?$"
     },
     {
+      "page": "/join",
+      "regex": "^/join(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/join(?:/)?$"
+    },
+    {
       "page": "/profile",
       "regex": "^/profile(?:/)?$",
       "routeKeys": {},
@@ -77,6 +83,18 @@
       "regex": "^/sign\\-up(?:/)?$",
       "routeKeys": {},
       "namedRegex": "^/sign\\-up(?:/)?$"
+    },
+    {
+      "page": "/sign-up/artisan",
+      "regex": "^/sign\\-up/artisan(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/sign\\-up/artisan(?:/)?$"
+    },
+    {
+      "page": "/sign-up/client",
+      "regex": "^/sign\\-up/client(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/sign\\-up/client(?:/)?$"
     }
   ],
   "dataRoutes": [],

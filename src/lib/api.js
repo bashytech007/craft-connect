@@ -411,6 +411,16 @@ export const api = {
       payload.trade_category = userData.tradeCategory;
     }
 
+    // Include profile photo URL if provided
+    if (userData.profilePhotoUrl) {
+      payload.profile_photo_url = userData.profilePhotoUrl;
+    }
+
+    // Include portfolio URLs if provided
+    if (userData.portfolioUrls && userData.portfolioUrls.length > 0) {
+      payload.portfolio_urls = userData.portfolioUrls;
+    }
+
     const response = await apiRequest("/users/artisan/register/", {
       method: "POST",
       body: JSON.stringify(payload),
