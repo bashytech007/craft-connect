@@ -3568,7 +3568,7 @@ function ArtisanSignUpPage() {
         columnNumber: 5
     }, this);
 }
-_s(ArtisanSignUpPage, "Ejl0QQw1KXvGKRo6cpE654UomKE=", false, function() {
+_s(ArtisanSignUpPage, "TmIJm+2xvdSY3orvu15TpIX+fhM=", false, function() {
     return [
         __TURBOPACK__imported__module__$5b$project$5d2f$Desktop$2f$craft$2f$craft$2d$connect$2f$node_modules$2f$next$2f$navigation$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["useRouter"]
     ];
