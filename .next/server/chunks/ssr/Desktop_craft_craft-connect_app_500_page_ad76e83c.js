@@ -1,3 +1,0 @@
-module.exports=[58059,a=>{"use strict";var b=a.i(90408);function c(){return(0,b.jsx)("div",{className:"min-h-screen flex items-center justify-center bg-gray-50 px-4",children:(0,b.jsxs)("div",{className:"max-w-md w-full text-center",children:[(0,b.jsx)("h1",{className:"text-4xl font-bold text-gray-900 mb-4",children:"Something went wrong"}),(0,b.jsx)("p",{className:"text-gray-600 mb-6",children:"An unexpected error occurred. Please refresh the page or try again later."})]})})}a.s(["default",()=>c,"dynamic",0,"force-dynamic"])}];
-
-//# sourceMappingURL=Desktop_craft_craft-connect_app_500_page_ad76e83c.js.map

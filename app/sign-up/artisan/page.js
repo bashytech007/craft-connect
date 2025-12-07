@@ -1993,7 +1993,6 @@
 //   }
 // }
 
-
 "use client";
 
 import { useState, useEffect, useRef } from "react";
@@ -2160,6 +2159,47 @@ export default function ArtisanSignUpPage() {
     return TRADE_ICONS[categoryName] || TRADE_ICONS["default"];
   };
 
+  // File upload handler - Server-side upload (no CORS issues!)
+  const handleFileUpload = async (file, entityId, intent = "profile") => {
+    try {
+      console.log("Starting file upload...", {
+        file: file.name,
+        entityId,
+        intent,
+      });
+
+      // Create FormData for server-side upload
+      const formData = new FormData();
+      formData.append("file", file);
+      formData.append("entityType", "artisan");
+      formData.append("entityId", entityId);
+      formData.append("intent", intent);
+
+      // Upload via server-side endpoint (no CORS issues!)
+      const response = await fetch("/api/upload", {
+        method: "POST",
+        body: formData, // Don't set Content-Type header - browser sets it automatically
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || "Upload failed");
+      }
+
+      const data = await response.json();
+      console.log("Upload successful!", data);
+
+      return {
+        url: data.url,
+        key: data.key,
+        filename: data.filename,
+      };
+    } catch (error) {
+      console.error("Upload error:", error);
+      throw error;
+    }
+  };
+
   // Upload profile photo to R2
   const handleProfilePhoto = async (e) => {
     const file = e.target.files[0];
@@ -2177,53 +2217,18 @@ export default function ArtisanSignUpPage() {
       const userId = tempUserId || "temp_" + Date.now();
       if (!tempUserId) setTempUserId(userId);
 
-      const fileExt = file.name.split(".").pop();
+      setUploadProgress({ profile: 10 });
 
-      const urlResponse = await fetch("/api/upload/presigned-url", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          entityType: "artisan",
-          entityId: userId,
-          intent: "profile",
-          fileExtension: fileExt,
-          contentType: file.type,
-        }),
-      });
+      const result = await handleFileUpload(file, userId, "profile");
 
-      if (!urlResponse.ok) throw new Error("Failed to get upload URL");
-
-      const { uploadUrl, publicUrl, key } = await urlResponse.json();
-
-      await new Promise((resolve, reject) => {
-        const xhr = new XMLHttpRequest();
-        xhr.open("PUT", uploadUrl);
-        xhr.setRequestHeader("Content-Type", file.type);
-
-        xhr.upload.onprogress = (event) => {
-          if (event.lengthComputable) {
-            const percent = Math.round((event.loaded / event.total) * 100);
-            setUploadProgress({ profile: percent });
-          }
-        };
-
-        xhr.onload = () => {
-          if (xhr.status >= 200 && xhr.status < 300) {
-            resolve();
-          } else {
-            reject(new Error("Upload failed"));
-          }
-        };
-
-        xhr.onerror = () => reject(new Error("Upload failed"));
-        xhr.send(file);
-      });
+      setUploadProgress({ profile: 100 });
 
       setFormData({
         ...formData,
-        profilePhotoUrl: publicUrl,
+        profilePhotoUrl: result.url,
         profilePhotoPreview: URL.createObjectURL(file),
       });
+
       setUploadProgress({});
     } catch (err) {
       setError(err.message || "Failed to upload profile photo");
@@ -2256,53 +2261,19 @@ export default function ArtisanSignUpPage() {
 
       for (let i = 0; i < files.length; i++) {
         const file = files[i];
-        const fileExt = file.name.split(".").pop();
         const isVideo = file.type.startsWith("video/");
 
         setUploadProgress({ [`portfolio_${i}`]: 0 });
 
-        const urlResponse = await fetch("/api/upload/presigned-url", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            entityType: "artisan",
-            entityId: userId,
-            intent: "portfolio",
-            fileExtension: fileExt,
-            contentType: file.type,
-          }),
-        });
+        const result = await handleFileUpload(file, userId, "portfolio");
 
-        if (!urlResponse.ok) throw new Error("Failed to get upload URL");
-
-        const { uploadUrl, publicUrl, key } = await urlResponse.json();
-
-        await new Promise((resolve, reject) => {
-          const xhr = new XMLHttpRequest();
-          xhr.open("PUT", uploadUrl);
-          xhr.setRequestHeader("Content-Type", file.type);
-
-          xhr.upload.onprogress = (event) => {
-            if (event.lengthComputable) {
-              const percent = Math.round((event.loaded / event.total) * 100);
-              setUploadProgress({ [`portfolio_${i}`]: percent });
-            }
-          };
-
-          xhr.onload = () => {
-            if (xhr.status >= 200 && xhr.status < 300) resolve();
-            else reject(new Error("Upload failed"));
-          };
-
-          xhr.onerror = () => reject(new Error("Upload failed"));
-          xhr.send(file);
-        });
+        setUploadProgress({ [`portfolio_${i}`]: 100 });
 
         uploadedItems.push({
-          url: publicUrl,
+          url: result.url,
           preview: URL.createObjectURL(file),
           type: isVideo ? "video" : "image",
-          key,
+          key: result.key,
         });
       }
 
@@ -2354,10 +2325,10 @@ export default function ArtisanSignUpPage() {
       // Check if backend returns auth token (for auto-login)
       if (response?.token || response?.access_token) {
         const token = response.token || response.access_token;
-        localStorage.setItem('token', token);
-        localStorage.setItem('userId', response.userId || response.id);
-        localStorage.setItem('userType', 'artisan');
-        
+        localStorage.setItem("token", token);
+        localStorage.setItem("userId", response.userId || response.id);
+        localStorage.setItem("userType", "artisan");
+
         setSuccess("🎉 Account created! Taking you to your dashboard...");
         setTimeout(() => {
           router.push("/dashboard");
@@ -2366,7 +2337,7 @@ export default function ArtisanSignUpPage() {
         // ✅ NO AUTO-REDIRECT - Show success message and manual link
         setSuccess("account_created");
       }
-      
+
       setLoading(false);
     } catch (error) {
       setError(error.message || "Failed to create account. Please try again.");
@@ -2414,10 +2385,10 @@ export default function ArtisanSignUpPage() {
       // Check if backend returns auth token
       if (response?.token || response?.access_token) {
         const token = response.token || response.access_token;
-        localStorage.setItem('token', token);
-        localStorage.setItem('userId', response.userId || response.id);
-        localStorage.setItem('userType', 'artisan');
-        
+        localStorage.setItem("token", token);
+        localStorage.setItem("userId", response.userId || response.id);
+        localStorage.setItem("userType", "artisan");
+
         setSuccess("🎉 Account created! Taking you to your dashboard...");
         setTimeout(() => {
           router.push("/dashboard");
@@ -2522,7 +2493,7 @@ export default function ArtisanSignUpPage() {
               {error}
             </div>
           )}
-          
+
           {/* ✅ FIXED: Custom success message with manual sign-in button */}
           {success === "account_created" ? (
             <div className="mb-4 p-4 bg-green-50 border-2 border-green-400 rounded-lg">
@@ -2535,7 +2506,9 @@ export default function ArtisanSignUpPage() {
                     🎉 Account Created Successfully!
                   </h3>
                   <p className="text-sm text-green-800 mb-4">
-                    Your artisan account has been created. You can now sign in with your email and password to start connecting with clients.
+                    Your artisan account has been created. You can now sign in
+                    with your email and password to start connecting with
+                    clients.
                   </p>
                   <button
                     onClick={() => router.push("/sign-in")}
@@ -2786,7 +2759,9 @@ export default function ArtisanSignUpPage() {
                         key={category.id}
                         type="button"
                         onClick={() => selectTradeCategory(category.id)}
-                        className={`relative p-4 rounded-xl border-2 transition-all ${icon.color} ${
+                        className={`relative p-4 rounded-xl border-2 transition-all ${
+                          icon.color
+                        } ${
                           isSelected
                             ? "border-amber-500 shadow-lg scale-105 ring-2 ring-amber-200"
                             : "border-transparent"

@@ -2034,6 +2034,41 @@ function ArtisanSignUpPage() {
     const getTradeIcon = (categoryName)=>{
         return TRADE_ICONS[categoryName] || TRADE_ICONS["default"];
     };
+    // File upload handler - Server-side upload (no CORS issues!)
+    const handleFileUpload = async (file, entityId, intent = "profile")=>{
+        try {
+            console.log("Starting file upload...", {
+                file: file.name,
+                entityId,
+                intent
+            });
+            // Create FormData for server-side upload
+            const formData = new FormData();
+            formData.append("file", file);
+            formData.append("entityType", "artisan");
+            formData.append("entityId", entityId);
+            formData.append("intent", intent);
+            // Upload via server-side endpoint (no CORS issues!)
+            const response = await fetch("/api/upload", {
+                method: "POST",
+                body: formData
+            });
+            if (!response.ok) {
+                const errorData = await response.json();
+                throw new Error(errorData.error || "Upload failed");
+            }
+            const data = await response.json();
+            console.log("Upload successful!", data);
+            return {
+                url: data.url,
+                key: data.key,
+                filename: data.filename
+            };
+        } catch (error) {
+            console.error("Upload error:", error);
+            throw error;
+        }
+    };
     // Upload profile photo to R2
     const handleProfilePhoto = async (e)=>{
         const file = e.target.files[0];
@@ -2049,47 +2084,16 @@ function ArtisanSignUpPage() {
         try {
             const userId = tempUserId || "temp_" + Date.now();
             if (!tempUserId) setTempUserId(userId);
-            const fileExt = file.name.split(".").pop();
-            const urlResponse = await fetch("/api/upload/presigned-url", {
-                method: "POST",
-                headers: {
-                    "Content-Type": "application/json"
-                },
-                body: JSON.stringify({
-                    entityType: "artisan",
-                    entityId: userId,
-                    intent: "profile",
-                    fileExtension: fileExt,
-                    contentType: file.type
-                })
+            setUploadProgress({
+                profile: 10
             });
-            if (!urlResponse.ok) throw new Error("Failed to get upload URL");
-            const { uploadUrl, publicUrl, key } = await urlResponse.json();
-            await new Promise((resolve, reject)=>{
-                const xhr = new XMLHttpRequest();
-                xhr.open("PUT", uploadUrl);
-                xhr.setRequestHeader("Content-Type", file.type);
-                xhr.upload.onprogress = (event)=>{
-                    if (event.lengthComputable) {
-                        const percent = Math.round(event.loaded / event.total * 100);
-                        setUploadProgress({
-                            profile: percent
-                        });
-                    }
-                };
-                xhr.onload = ()=>{
-                    if (xhr.status >= 200 && xhr.status < 300) {
-                        resolve();
-                    } else {
-                        reject(new Error("Upload failed"));
-                    }
-                };
-                xhr.onerror = ()=>reject(new Error("Upload failed"));
-                xhr.send(file);
+            const result = await handleFileUpload(file, userId, "profile");
+            setUploadProgress({
+                profile: 100
             });
             setFormData({
                 ...formData,
-                profilePhotoUrl: publicUrl,
+                profilePhotoUrl: result.url,
                 profilePhotoPreview: URL.createObjectURL(file)
             });
             setUploadProgress({});
@@ -2118,50 +2122,19 @@ function ArtisanSignUpPage() {
             const uploadedItems = [];
             for(let i = 0; i < files.length; i++){
                 const file = files[i];
-                const fileExt = file.name.split(".").pop();
                 const isVideo = file.type.startsWith("video/");
                 setUploadProgress({
                     [`portfolio_${i}`]: 0
                 });
-                const urlResponse = await fetch("/api/upload/presigned-url", {
-                    method: "POST",
-                    headers: {
-                        "Content-Type": "application/json"
-                    },
-                    body: JSON.stringify({
-                        entityType: "artisan",
-                        entityId: userId,
-                        intent: "portfolio",
-                        fileExtension: fileExt,
-                        contentType: file.type
-                    })
-                });
-                if (!urlResponse.ok) throw new Error("Failed to get upload URL");
-                const { uploadUrl, publicUrl, key } = await urlResponse.json();
-                await new Promise((resolve, reject)=>{
-                    const xhr = new XMLHttpRequest();
-                    xhr.open("PUT", uploadUrl);
-                    xhr.setRequestHeader("Content-Type", file.type);
-                    xhr.upload.onprogress = (event)=>{
-                        if (event.lengthComputable) {
-                            const percent = Math.round(event.loaded / event.total * 100);
-                            setUploadProgress({
-                                [`portfolio_${i}`]: percent
-                            });
-                        }
-                    };
-                    xhr.onload = ()=>{
-                        if (xhr.status >= 200 && xhr.status < 300) resolve();
-                        else reject(new Error("Upload failed"));
-                    };
-                    xhr.onerror = ()=>reject(new Error("Upload failed"));
-                    xhr.send(file);
+                const result = await handleFileUpload(file, userId, "portfolio");
+                setUploadProgress({
+                    [`portfolio_${i}`]: 100
                 });
                 uploadedItems.push({
-                    url: publicUrl,
+                    url: result.url,
                     preview: URL.createObjectURL(file),
                     type: isVideo ? "video" : "image",
-                    key
+                    key: result.key
                 });
             }
             setFormData({
@@ -2207,9 +2180,9 @@ function ArtisanSignUpPage() {
             // Check if backend returns auth token (for auto-login)
             if (response?.token || response?.access_token) {
                 const token = response.token || response.access_token;
-                localStorage.setItem('token', token);
-                localStorage.setItem('userId', response.userId || response.id);
-                localStorage.setItem('userType', 'artisan');
+                localStorage.setItem("token", token);
+                localStorage.setItem("userId", response.userId || response.id);
+                localStorage.setItem("userType", "artisan");
                 setSuccess("🎉 Account created! Taking you to your dashboard...");
                 setTimeout(()=>{
                     router.push("/dashboard");
@@ -2250,9 +2223,9 @@ function ArtisanSignUpPage() {
             // Check if backend returns auth token
             if (response?.token || response?.access_token) {
                 const token = response.token || response.access_token;
-                localStorage.setItem('token', token);
-                localStorage.setItem('userId', response.userId || response.id);
-                localStorage.setItem('userType', 'artisan');
+                localStorage.setItem("token", token);
+                localStorage.setItem("userId", response.userId || response.id);
+                localStorage.setItem("userType", "artisan");
                 setSuccess("🎉 Account created! Taking you to your dashboard...");
                 setTimeout(()=>{
                     router.push("/dashboard");
@@ -2279,17 +2252,17 @@ function ArtisanSignUpPage() {
                     children: "Loading signup form..."
                 }, void 0, false, {
                     fileName: "[project]/Desktop/craft/craft-connect/app/sign-up/artisan/page.js",
-                    lineNumber: 2446,
+                    lineNumber: 2417,
                     columnNumber: 11
                 }, this)
             }, void 0, false, {
                 fileName: "[project]/Desktop/craft/craft-connect/app/sign-up/artisan/page.js",
-                lineNumber: 2445,
+                lineNumber: 2416,
                 columnNumber: 9
             }, this)
         }, void 0, false, {
             fileName: "[project]/Desktop/craft/craft-connect/app/sign-up/artisan/page.js",
-            lineNumber: 2444,
+            lineNumber: 2415,
             columnNumber: 7
         }, this);
     }
@@ -2310,20 +2283,20 @@ function ArtisanSignUpPage() {
                             unoptimized: true
                         }, void 0, false, {
                             fileName: "[project]/Desktop/craft/craft-connect/app/sign-up/artisan/page.js",
-                            lineNumber: 2457,
+                            lineNumber: 2428,
                             columnNumber: 11
                         }, this),
                         /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$Desktop$2f$craft$2f$craft$2d$connect$2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
                             className: "absolute inset-0 bg-gradient-to-t from-black/60 to-transparent"
                         }, void 0, false, {
                             fileName: "[project]/Desktop/craft/craft-connect/app/sign-up/artisan/page.js",
-                            lineNumber: 2465,
+                            lineNumber: 2436,
                             columnNumber: 11
                         }, this)
                     ]
                 }, void 0, true, {
                     fileName: "[project]/Desktop/craft/craft-connect/app/sign-up/artisan/page.js",
-                    lineNumber: 2456,
+                    lineNumber: 2427,
                     columnNumber: 9
                 }, this),
                 /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$Desktop$2f$craft$2f$craft$2d$connect$2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
@@ -2336,12 +2309,12 @@ function ArtisanSignUpPage() {
                                 className: "w-6 h-6"
                             }, void 0, false, {
                                 fileName: "[project]/Desktop/craft/craft-connect/app/sign-up/artisan/page.js",
-                                lineNumber: 2474,
+                                lineNumber: 2445,
                                 columnNumber: 13
                             }, this)
                         }, void 0, false, {
                             fileName: "[project]/Desktop/craft/craft-connect/app/sign-up/artisan/page.js",
-                            lineNumber: 2470,
+                            lineNumber: 2441,
                             columnNumber: 11
                         }, this),
                         /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$Desktop$2f$craft$2f$craft$2d$connect$2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
@@ -2359,7 +2332,7 @@ function ArtisanSignUpPage() {
                                             unoptimized: true
                                         }, void 0, false, {
                                             fileName: "[project]/Desktop/craft/craft-connect/app/sign-up/artisan/page.js",
-                                            lineNumber: 2480,
+                                            lineNumber: 2451,
                                             columnNumber: 15
                                         }, this),
                                         /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$Desktop$2f$craft$2f$craft$2d$connect$2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("span", {
@@ -2367,13 +2340,13 @@ function ArtisanSignUpPage() {
                                             children: "CraftConnect"
                                         }, void 0, false, {
                                             fileName: "[project]/Desktop/craft/craft-connect/app/sign-up/artisan/page.js",
-                                            lineNumber: 2488,
+                                            lineNumber: 2459,
                                             columnNumber: 15
                                         }, this)
                                     ]
                                 }, void 0, true, {
                                     fileName: "[project]/Desktop/craft/craft-connect/app/sign-up/artisan/page.js",
-                                    lineNumber: 2479,
+                                    lineNumber: 2450,
                                     columnNumber: 13
                                 }, this),
                                 /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$Desktop$2f$craft$2f$craft$2d$connect$2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("h2", {
@@ -2381,7 +2354,7 @@ function ArtisanSignUpPage() {
                                     children: "Sign up as Artisan"
                                 }, void 0, false, {
                                     fileName: "[project]/Desktop/craft/craft-connect/app/sign-up/artisan/page.js",
-                                    lineNumber: 2490,
+                                    lineNumber: 2461,
                                     columnNumber: 13
                                 }, this),
                                 /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$Desktop$2f$craft$2f$craft$2d$connect$2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("p", {
@@ -2394,19 +2367,19 @@ function ArtisanSignUpPage() {
                                             children: "Success"
                                         }, void 0, false, {
                                             fileName: "[project]/Desktop/craft/craft-connect/app/sign-up/artisan/page.js",
-                                            lineNumber: 2495,
+                                            lineNumber: 2466,
                                             columnNumber: 15
                                         }, this)
                                     ]
                                 }, void 0, true, {
                                     fileName: "[project]/Desktop/craft/craft-connect/app/sign-up/artisan/page.js",
-                                    lineNumber: 2493,
+                                    lineNumber: 2464,
                                     columnNumber: 13
                                 }, this)
                             ]
                         }, void 0, true, {
                             fileName: "[project]/Desktop/craft/craft-connect/app/sign-up/artisan/page.js",
-                            lineNumber: 2478,
+                            lineNumber: 2449,
                             columnNumber: 11
                         }, this),
                         currentStep > 0 && /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$Desktop$2f$craft$2f$craft$2d$connect$2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
@@ -2424,7 +2397,7 @@ function ArtisanSignUpPage() {
                                             ]
                                         }, void 0, true, {
                                             fileName: "[project]/Desktop/craft/craft-connect/app/sign-up/artisan/page.js",
-                                            lineNumber: 2503,
+                                            lineNumber: 2474,
                                             columnNumber: 17
                                         }, this),
                                         /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$Desktop$2f$craft$2f$craft$2d$connect$2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("span", {
@@ -2435,13 +2408,13 @@ function ArtisanSignUpPage() {
                                             ]
                                         }, void 0, true, {
                                             fileName: "[project]/Desktop/craft/craft-connect/app/sign-up/artisan/page.js",
-                                            lineNumber: 2506,
+                                            lineNumber: 2477,
                                             columnNumber: 17
                                         }, this)
                                     ]
                                 }, void 0, true, {
                                     fileName: "[project]/Desktop/craft/craft-connect/app/sign-up/artisan/page.js",
-                                    lineNumber: 2502,
+                                    lineNumber: 2473,
                                     columnNumber: 15
                                 }, this),
                                 /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$Desktop$2f$craft$2f$craft$2d$connect$2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
@@ -2453,18 +2426,18 @@ function ArtisanSignUpPage() {
                                         }
                                     }, void 0, false, {
                                         fileName: "[project]/Desktop/craft/craft-connect/app/sign-up/artisan/page.js",
-                                        lineNumber: 2511,
+                                        lineNumber: 2482,
                                         columnNumber: 17
                                     }, this)
                                 }, void 0, false, {
                                     fileName: "[project]/Desktop/craft/craft-connect/app/sign-up/artisan/page.js",
-                                    lineNumber: 2510,
+                                    lineNumber: 2481,
                                     columnNumber: 15
                                 }, this)
                             ]
                         }, void 0, true, {
                             fileName: "[project]/Desktop/craft/craft-connect/app/sign-up/artisan/page.js",
-                            lineNumber: 2501,
+                            lineNumber: 2472,
                             columnNumber: 13
                         }, this),
                         error && /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$Desktop$2f$craft$2f$craft$2d$connect$2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
@@ -2472,7 +2445,7 @@ function ArtisanSignUpPage() {
                             children: error
                         }, void 0, false, {
                             fileName: "[project]/Desktop/craft/craft-connect/app/sign-up/artisan/page.js",
-                            lineNumber: 2521,
+                            lineNumber: 2492,
                             columnNumber: 13
                         }, this),
                         success === "account_created" ? /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$Desktop$2f$craft$2f$craft$2d$connect$2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
@@ -2486,12 +2459,12 @@ function ArtisanSignUpPage() {
                                             className: "w-6 h-6 text-white"
                                         }, void 0, false, {
                                             fileName: "[project]/Desktop/craft/craft-connect/app/sign-up/artisan/page.js",
-                                            lineNumber: 2531,
+                                            lineNumber: 2502,
                                             columnNumber: 19
                                         }, this)
                                     }, void 0, false, {
                                         fileName: "[project]/Desktop/craft/craft-connect/app/sign-up/artisan/page.js",
-                                        lineNumber: 2530,
+                                        lineNumber: 2501,
                                         columnNumber: 17
                                     }, this),
                                     /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$Desktop$2f$craft$2f$craft$2d$connect$2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
@@ -2502,7 +2475,7 @@ function ArtisanSignUpPage() {
                                                 children: "🎉 Account Created Successfully!"
                                             }, void 0, false, {
                                                 fileName: "[project]/Desktop/craft/craft-connect/app/sign-up/artisan/page.js",
-                                                lineNumber: 2534,
+                                                lineNumber: 2505,
                                                 columnNumber: 19
                                             }, this),
                                             /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$Desktop$2f$craft$2f$craft$2d$connect$2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("p", {
@@ -2510,7 +2483,7 @@ function ArtisanSignUpPage() {
                                                 children: "Your artisan account has been created. You can now sign in with your email and password to start connecting with clients."
                                             }, void 0, false, {
                                                 fileName: "[project]/Desktop/craft/craft-connect/app/sign-up/artisan/page.js",
-                                                lineNumber: 2537,
+                                                lineNumber: 2508,
                                                 columnNumber: 19
                                             }, this),
                                             /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$Desktop$2f$craft$2f$craft$2d$connect$2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("button", {
@@ -2522,37 +2495,37 @@ function ArtisanSignUpPage() {
                                                         className: "w-5 h-5"
                                                     }, void 0, false, {
                                                         fileName: "[project]/Desktop/craft/craft-connect/app/sign-up/artisan/page.js",
-                                                        lineNumber: 2544,
+                                                        lineNumber: 2517,
                                                         columnNumber: 35
                                                     }, this)
                                                 ]
                                             }, void 0, true, {
                                                 fileName: "[project]/Desktop/craft/craft-connect/app/sign-up/artisan/page.js",
-                                                lineNumber: 2540,
+                                                lineNumber: 2513,
                                                 columnNumber: 19
                                             }, this)
                                         ]
                                     }, void 0, true, {
                                         fileName: "[project]/Desktop/craft/craft-connect/app/sign-up/artisan/page.js",
-                                        lineNumber: 2533,
+                                        lineNumber: 2504,
                                         columnNumber: 17
                                     }, this)
                                 ]
                             }, void 0, true, {
                                 fileName: "[project]/Desktop/craft/craft-connect/app/sign-up/artisan/page.js",
-                                lineNumber: 2529,
+                                lineNumber: 2500,
                                 columnNumber: 15
                             }, this)
                         }, void 0, false, {
                             fileName: "[project]/Desktop/craft/craft-connect/app/sign-up/artisan/page.js",
-                            lineNumber: 2528,
+                            lineNumber: 2499,
                             columnNumber: 13
                         }, this) : success ? /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$Desktop$2f$craft$2f$craft$2d$connect$2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
                             className: "mb-4 p-3 bg-green-100 border border-green-400 text-green-700 rounded-lg text-sm",
                             children: success
                         }, void 0, false, {
                             fileName: "[project]/Desktop/craft/craft-connect/app/sign-up/artisan/page.js",
-                            lineNumber: 2550,
+                            lineNumber: 2523,
                             columnNumber: 13
                         }, this) : null,
                         isUploading && /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$Desktop$2f$craft$2f$craft$2d$connect$2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
@@ -2563,7 +2536,7 @@ function ArtisanSignUpPage() {
                                     children: "Uploading..."
                                 }, void 0, false, {
                                     fileName: "[project]/Desktop/craft/craft-connect/app/sign-up/artisan/page.js",
-                                    lineNumber: 2558,
+                                    lineNumber: 2531,
                                     columnNumber: 15
                                 }, this),
                                 Object.entries(uploadProgress).map(([key, progress])=>/*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$Desktop$2f$craft$2f$craft$2d$connect$2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
@@ -2576,7 +2549,7 @@ function ArtisanSignUpPage() {
                                                         children: key.replace("_", " ")
                                                     }, void 0, false, {
                                                         fileName: "[project]/Desktop/craft/craft-connect/app/sign-up/artisan/page.js",
-                                                        lineNumber: 2564,
+                                                        lineNumber: 2537,
                                                         columnNumber: 21
                                                     }, this),
                                                     /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$Desktop$2f$craft$2f$craft$2d$connect$2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("span", {
@@ -2586,13 +2559,13 @@ function ArtisanSignUpPage() {
                                                         ]
                                                     }, void 0, true, {
                                                         fileName: "[project]/Desktop/craft/craft-connect/app/sign-up/artisan/page.js",
-                                                        lineNumber: 2565,
+                                                        lineNumber: 2538,
                                                         columnNumber: 21
                                                     }, this)
                                                 ]
                                             }, void 0, true, {
                                                 fileName: "[project]/Desktop/craft/craft-connect/app/sign-up/artisan/page.js",
-                                                lineNumber: 2563,
+                                                lineNumber: 2536,
                                                 columnNumber: 19
                                             }, this),
                                             /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$Desktop$2f$craft$2f$craft$2d$connect$2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
@@ -2604,24 +2577,24 @@ function ArtisanSignUpPage() {
                                                     }
                                                 }, void 0, false, {
                                                     fileName: "[project]/Desktop/craft/craft-connect/app/sign-up/artisan/page.js",
-                                                    lineNumber: 2568,
+                                                    lineNumber: 2541,
                                                     columnNumber: 21
                                                 }, this)
                                             }, void 0, false, {
                                                 fileName: "[project]/Desktop/craft/craft-connect/app/sign-up/artisan/page.js",
-                                                lineNumber: 2567,
+                                                lineNumber: 2540,
                                                 columnNumber: 19
                                             }, this)
                                         ]
                                     }, key, true, {
                                         fileName: "[project]/Desktop/craft/craft-connect/app/sign-up/artisan/page.js",
-                                        lineNumber: 2562,
+                                        lineNumber: 2535,
                                         columnNumber: 17
                                     }, this))
                             ]
                         }, void 0, true, {
                             fileName: "[project]/Desktop/craft/craft-connect/app/sign-up/artisan/page.js",
-                            lineNumber: 2557,
+                            lineNumber: 2530,
                             columnNumber: 13
                         }, this),
                         currentStep === 0 && /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$Desktop$2f$craft$2f$craft$2d$connect$2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
@@ -2635,7 +2608,7 @@ function ArtisanSignUpPage() {
                                             children: "Get Started"
                                         }, void 0, false, {
                                             fileName: "[project]/Desktop/craft/craft-connect/app/sign-up/artisan/page.js",
-                                            lineNumber: 2582,
+                                            lineNumber: 2555,
                                             columnNumber: 17
                                         }, this),
                                         /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$Desktop$2f$craft$2f$craft$2d$connect$2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("p", {
@@ -2643,13 +2616,13 @@ function ArtisanSignUpPage() {
                                             children: "Create your artisan account in just a few steps"
                                         }, void 0, false, {
                                             fileName: "[project]/Desktop/craft/craft-connect/app/sign-up/artisan/page.js",
-                                            lineNumber: 2585,
+                                            lineNumber: 2558,
                                             columnNumber: 17
                                         }, this)
                                     ]
                                 }, void 0, true, {
                                     fileName: "[project]/Desktop/craft/craft-connect/app/sign-up/artisan/page.js",
-                                    lineNumber: 2581,
+                                    lineNumber: 2554,
                                     columnNumber: 15
                                 }, this),
                                 /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$Desktop$2f$craft$2f$craft$2d$connect$2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("button", {
@@ -2660,14 +2633,14 @@ function ArtisanSignUpPage() {
                                             className: "w-5 h-5"
                                         }, void 0, false, {
                                             fileName: "[project]/Desktop/craft/craft-connect/app/sign-up/artisan/page.js",
-                                            lineNumber: 2594,
+                                            lineNumber: 2567,
                                             columnNumber: 17
                                         }, this),
                                         "Continue with Email"
                                     ]
                                 }, void 0, true, {
                                     fileName: "[project]/Desktop/craft/craft-connect/app/sign-up/artisan/page.js",
-                                    lineNumber: 2590,
+                                    lineNumber: 2563,
                                     columnNumber: 15
                                 }, this),
                                 /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$Desktop$2f$craft$2f$craft$2d$connect$2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("p", {
@@ -2675,7 +2648,7 @@ function ArtisanSignUpPage() {
                                     children: "By signing up, you agree to the Terms of Service and Privacy Policy"
                                 }, void 0, false, {
                                     fileName: "[project]/Desktop/craft/craft-connect/app/sign-up/artisan/page.js",
-                                    lineNumber: 2598,
+                                    lineNumber: 2571,
                                     columnNumber: 15
                                 }, this),
                                 /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$Desktop$2f$craft$2f$craft$2d$connect$2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("p", {
@@ -2689,19 +2662,19 @@ function ArtisanSignUpPage() {
                                             children: "Sign in"
                                         }, void 0, false, {
                                             fileName: "[project]/Desktop/craft/craft-connect/app/sign-up/artisan/page.js",
-                                            lineNumber: 2605,
+                                            lineNumber: 2578,
                                             columnNumber: 17
                                         }, this)
                                     ]
                                 }, void 0, true, {
                                     fileName: "[project]/Desktop/craft/craft-connect/app/sign-up/artisan/page.js",
-                                    lineNumber: 2603,
+                                    lineNumber: 2576,
                                     columnNumber: 15
                                 }, this)
                             ]
                         }, void 0, true, {
                             fileName: "[project]/Desktop/craft/craft-connect/app/sign-up/artisan/page.js",
-                            lineNumber: 2580,
+                            lineNumber: 2553,
                             columnNumber: 13
                         }, this),
                         currentStep === 1 && /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$Desktop$2f$craft$2f$craft$2d$connect$2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
@@ -2717,7 +2690,7 @@ function ArtisanSignUpPage() {
                                                     children: "First Name*"
                                                 }, void 0, false, {
                                                     fileName: "[project]/Desktop/craft/craft-connect/app/sign-up/artisan/page.js",
-                                                    lineNumber: 2620,
+                                                    lineNumber: 2593,
                                                     columnNumber: 19
                                                 }, this),
                                                 /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$Desktop$2f$craft$2f$craft$2d$connect$2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("input", {
@@ -2730,13 +2703,13 @@ function ArtisanSignUpPage() {
                                                     className: "w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-amber-500 focus:border-transparent outline-none"
                                                 }, void 0, false, {
                                                     fileName: "[project]/Desktop/craft/craft-connect/app/sign-up/artisan/page.js",
-                                                    lineNumber: 2623,
+                                                    lineNumber: 2596,
                                                     columnNumber: 19
                                                 }, this)
                                             ]
                                         }, void 0, true, {
                                             fileName: "[project]/Desktop/craft/craft-connect/app/sign-up/artisan/page.js",
-                                            lineNumber: 2619,
+                                            lineNumber: 2592,
                                             columnNumber: 17
                                         }, this),
                                         /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$Desktop$2f$craft$2f$craft$2d$connect$2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
@@ -2746,7 +2719,7 @@ function ArtisanSignUpPage() {
                                                     children: "Last Name*"
                                                 }, void 0, false, {
                                                     fileName: "[project]/Desktop/craft/craft-connect/app/sign-up/artisan/page.js",
-                                                    lineNumber: 2635,
+                                                    lineNumber: 2608,
                                                     columnNumber: 19
                                                 }, this),
                                                 /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$Desktop$2f$craft$2f$craft$2d$connect$2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("input", {
@@ -2759,19 +2732,19 @@ function ArtisanSignUpPage() {
                                                     className: "w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-amber-500 focus:border-transparent outline-none"
                                                 }, void 0, false, {
                                                     fileName: "[project]/Desktop/craft/craft-connect/app/sign-up/artisan/page.js",
-                                                    lineNumber: 2638,
+                                                    lineNumber: 2611,
                                                     columnNumber: 19
                                                 }, this)
                                             ]
                                         }, void 0, true, {
                                             fileName: "[project]/Desktop/craft/craft-connect/app/sign-up/artisan/page.js",
-                                            lineNumber: 2634,
+                                            lineNumber: 2607,
                                             columnNumber: 17
                                         }, this)
                                     ]
                                 }, void 0, true, {
                                     fileName: "[project]/Desktop/craft/craft-connect/app/sign-up/artisan/page.js",
-                                    lineNumber: 2618,
+                                    lineNumber: 2591,
                                     columnNumber: 15
                                 }, this),
                                 /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$Desktop$2f$craft$2f$craft$2d$connect$2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
@@ -2781,7 +2754,7 @@ function ArtisanSignUpPage() {
                                             children: "Phone Number*"
                                         }, void 0, false, {
                                             fileName: "[project]/Desktop/craft/craft-connect/app/sign-up/artisan/page.js",
-                                            lineNumber: 2651,
+                                            lineNumber: 2624,
                                             columnNumber: 17
                                         }, this),
                                         /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$Desktop$2f$craft$2f$craft$2d$connect$2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("input", {
@@ -2794,13 +2767,13 @@ function ArtisanSignUpPage() {
                                             className: "w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-amber-500 focus:border-transparent outline-none"
                                         }, void 0, false, {
                                             fileName: "[project]/Desktop/craft/craft-connect/app/sign-up/artisan/page.js",
-                                            lineNumber: 2654,
+                                            lineNumber: 2627,
                                             columnNumber: 17
                                         }, this)
                                     ]
                                 }, void 0, true, {
                                     fileName: "[project]/Desktop/craft/craft-connect/app/sign-up/artisan/page.js",
-                                    lineNumber: 2650,
+                                    lineNumber: 2623,
                                     columnNumber: 15
                                 }, this),
                                 /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$Desktop$2f$craft$2f$craft$2d$connect$2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
@@ -2810,7 +2783,7 @@ function ArtisanSignUpPage() {
                                             children: "Email Address*"
                                         }, void 0, false, {
                                             fileName: "[project]/Desktop/craft/craft-connect/app/sign-up/artisan/page.js",
-                                            lineNumber: 2666,
+                                            lineNumber: 2639,
                                             columnNumber: 17
                                         }, this),
                                         /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$Desktop$2f$craft$2f$craft$2d$connect$2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("input", {
@@ -2823,13 +2796,13 @@ function ArtisanSignUpPage() {
                                             className: "w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-amber-500 focus:border-transparent outline-none"
                                         }, void 0, false, {
                                             fileName: "[project]/Desktop/craft/craft-connect/app/sign-up/artisan/page.js",
-                                            lineNumber: 2669,
+                                            lineNumber: 2642,
                                             columnNumber: 17
                                         }, this)
                                     ]
                                 }, void 0, true, {
                                     fileName: "[project]/Desktop/craft/craft-connect/app/sign-up/artisan/page.js",
-                                    lineNumber: 2665,
+                                    lineNumber: 2638,
                                     columnNumber: 15
                                 }, this),
                                 /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$Desktop$2f$craft$2f$craft$2d$connect$2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
@@ -2839,7 +2812,7 @@ function ArtisanSignUpPage() {
                                             children: "Password*"
                                         }, void 0, false, {
                                             fileName: "[project]/Desktop/craft/craft-connect/app/sign-up/artisan/page.js",
-                                            lineNumber: 2681,
+                                            lineNumber: 2654,
                                             columnNumber: 17
                                         }, this),
                                         /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$Desktop$2f$craft$2f$craft$2d$connect$2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("input", {
@@ -2853,13 +2826,13 @@ function ArtisanSignUpPage() {
                                             className: "w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-amber-500 focus:border-transparent outline-none"
                                         }, void 0, false, {
                                             fileName: "[project]/Desktop/craft/craft-connect/app/sign-up/artisan/page.js",
-                                            lineNumber: 2684,
+                                            lineNumber: 2657,
                                             columnNumber: 17
                                         }, this)
                                     ]
                                 }, void 0, true, {
                                     fileName: "[project]/Desktop/craft/craft-connect/app/sign-up/artisan/page.js",
-                                    lineNumber: 2680,
+                                    lineNumber: 2653,
                                     columnNumber: 15
                                 }, this),
                                 /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$Desktop$2f$craft$2f$craft$2d$connect$2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
@@ -2869,7 +2842,7 @@ function ArtisanSignUpPage() {
                                             children: "Location*"
                                         }, void 0, false, {
                                             fileName: "[project]/Desktop/craft/craft-connect/app/sign-up/artisan/page.js",
-                                            lineNumber: 2697,
+                                            lineNumber: 2670,
                                             columnNumber: 17
                                         }, this),
                                         /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$Desktop$2f$craft$2f$craft$2d$connect$2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("input", {
@@ -2882,13 +2855,13 @@ function ArtisanSignUpPage() {
                                             className: "w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-amber-500 focus:border-transparent outline-none"
                                         }, void 0, false, {
                                             fileName: "[project]/Desktop/craft/craft-connect/app/sign-up/artisan/page.js",
-                                            lineNumber: 2700,
+                                            lineNumber: 2673,
                                             columnNumber: 17
                                         }, this)
                                     ]
                                 }, void 0, true, {
                                     fileName: "[project]/Desktop/craft/craft-connect/app/sign-up/artisan/page.js",
-                                    lineNumber: 2696,
+                                    lineNumber: 2669,
                                     columnNumber: 15
                                 }, this),
                                 /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$Desktop$2f$craft$2f$craft$2d$connect$2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
@@ -2898,7 +2871,7 @@ function ArtisanSignUpPage() {
                                             children: "Language*"
                                         }, void 0, false, {
                                             fileName: "[project]/Desktop/craft/craft-connect/app/sign-up/artisan/page.js",
-                                            lineNumber: 2712,
+                                            lineNumber: 2685,
                                             columnNumber: 17
                                         }, this),
                                         /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$Desktop$2f$craft$2f$craft$2d$connect$2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("select", {
@@ -2911,47 +2884,47 @@ function ArtisanSignUpPage() {
                                                     children: "English"
                                                 }, void 0, false, {
                                                     fileName: "[project]/Desktop/craft/craft-connect/app/sign-up/artisan/page.js",
-                                                    lineNumber: 2721,
+                                                    lineNumber: 2694,
                                                     columnNumber: 19
                                                 }, this),
                                                 /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$Desktop$2f$craft$2f$craft$2d$connect$2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("option", {
                                                     children: "Pidgin"
                                                 }, void 0, false, {
                                                     fileName: "[project]/Desktop/craft/craft-connect/app/sign-up/artisan/page.js",
-                                                    lineNumber: 2722,
+                                                    lineNumber: 2695,
                                                     columnNumber: 19
                                                 }, this),
                                                 /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$Desktop$2f$craft$2f$craft$2d$connect$2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("option", {
                                                     children: "Yoruba"
                                                 }, void 0, false, {
                                                     fileName: "[project]/Desktop/craft/craft-connect/app/sign-up/artisan/page.js",
-                                                    lineNumber: 2723,
+                                                    lineNumber: 2696,
                                                     columnNumber: 19
                                                 }, this),
                                                 /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$Desktop$2f$craft$2f$craft$2d$connect$2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("option", {
                                                     children: "Hausa"
                                                 }, void 0, false, {
                                                     fileName: "[project]/Desktop/craft/craft-connect/app/sign-up/artisan/page.js",
-                                                    lineNumber: 2724,
+                                                    lineNumber: 2697,
                                                     columnNumber: 19
                                                 }, this),
                                                 /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$Desktop$2f$craft$2f$craft$2d$connect$2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("option", {
                                                     children: "Igbo"
                                                 }, void 0, false, {
                                                     fileName: "[project]/Desktop/craft/craft-connect/app/sign-up/artisan/page.js",
-                                                    lineNumber: 2725,
+                                                    lineNumber: 2698,
                                                     columnNumber: 19
                                                 }, this)
                                             ]
                                         }, void 0, true, {
                                             fileName: "[project]/Desktop/craft/craft-connect/app/sign-up/artisan/page.js",
-                                            lineNumber: 2715,
+                                            lineNumber: 2688,
                                             columnNumber: 17
                                         }, this)
                                     ]
                                 }, void 0, true, {
                                     fileName: "[project]/Desktop/craft/craft-connect/app/sign-up/artisan/page.js",
-                                    lineNumber: 2711,
+                                    lineNumber: 2684,
                                     columnNumber: 15
                                 }, this),
                                 /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$Desktop$2f$craft$2f$craft$2d$connect$2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
@@ -2966,14 +2939,14 @@ function ArtisanSignUpPage() {
                                                     className: "w-5 h-5"
                                                 }, void 0, false, {
                                                     fileName: "[project]/Desktop/craft/craft-connect/app/sign-up/artisan/page.js",
-                                                    lineNumber: 2735,
+                                                    lineNumber: 2708,
                                                     columnNumber: 19
                                                 }, this),
                                                 " Back"
                                             ]
                                         }, void 0, true, {
                                             fileName: "[project]/Desktop/craft/craft-connect/app/sign-up/artisan/page.js",
-                                            lineNumber: 2730,
+                                            lineNumber: 2703,
                                             columnNumber: 17
                                         }, this),
                                         /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$Desktop$2f$craft$2f$craft$2d$connect$2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("button", {
@@ -2987,19 +2960,19 @@ function ArtisanSignUpPage() {
                                                     className: "w-5 h-5"
                                                 }, void 0, false, {
                                                     fileName: "[project]/Desktop/craft/craft-connect/app/sign-up/artisan/page.js",
-                                                    lineNumber: 2743,
+                                                    lineNumber: 2716,
                                                     columnNumber: 31
                                                 }, this)
                                             ]
                                         }, void 0, true, {
                                             fileName: "[project]/Desktop/craft/craft-connect/app/sign-up/artisan/page.js",
-                                            lineNumber: 2737,
+                                            lineNumber: 2710,
                                             columnNumber: 17
                                         }, this)
                                     ]
                                 }, void 0, true, {
                                     fileName: "[project]/Desktop/craft/craft-connect/app/sign-up/artisan/page.js",
-                                    lineNumber: 2729,
+                                    lineNumber: 2702,
                                     columnNumber: 15
                                 }, this),
                                 /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$Desktop$2f$craft$2f$craft$2d$connect$2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("button", {
@@ -3010,13 +2983,13 @@ function ArtisanSignUpPage() {
                                     children: "Skip & Create Account"
                                 }, void 0, false, {
                                     fileName: "[project]/Desktop/craft/craft-connect/app/sign-up/artisan/page.js",
-                                    lineNumber: 2747,
+                                    lineNumber: 2720,
                                     columnNumber: 15
                                 }, this)
                             ]
                         }, void 0, true, {
                             fileName: "[project]/Desktop/craft/craft-connect/app/sign-up/artisan/page.js",
-                            lineNumber: 2617,
+                            lineNumber: 2590,
                             columnNumber: 13
                         }, this),
                         currentStep === 2 && /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$Desktop$2f$craft$2f$craft$2d$connect$2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
@@ -3029,7 +3002,7 @@ function ArtisanSignUpPage() {
                                             children: "Select Your Trade"
                                         }, void 0, false, {
                                             fileName: "[project]/Desktop/craft/craft-connect/app/sign-up/artisan/page.js",
-                                            lineNumber: 2762,
+                                            lineNumber: 2735,
                                             columnNumber: 17
                                         }, this),
                                         /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$Desktop$2f$craft$2f$craft$2d$connect$2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("p", {
@@ -3037,13 +3010,13 @@ function ArtisanSignUpPage() {
                                             children: "Choose your trade category (optional)"
                                         }, void 0, false, {
                                             fileName: "[project]/Desktop/craft/craft-connect/app/sign-up/artisan/page.js",
-                                            lineNumber: 2765,
+                                            lineNumber: 2738,
                                             columnNumber: 17
                                         }, this)
                                     ]
                                 }, void 0, true, {
                                     fileName: "[project]/Desktop/craft/craft-connect/app/sign-up/artisan/page.js",
-                                    lineNumber: 2761,
+                                    lineNumber: 2734,
                                     columnNumber: 15
                                 }, this),
                                 loadingCategories ? /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$Desktop$2f$craft$2f$craft$2d$connect$2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
@@ -3051,14 +3024,14 @@ function ArtisanSignUpPage() {
                                     children: "Loading trades..."
                                 }, void 0, false, {
                                     fileName: "[project]/Desktop/craft/craft-connect/app/sign-up/artisan/page.js",
-                                    lineNumber: 2771,
+                                    lineNumber: 2744,
                                     columnNumber: 17
                                 }, this) : categories.length === 0 ? /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$Desktop$2f$craft$2f$craft$2d$connect$2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
                                     className: "text-center py-8 text-gray-500 bg-gray-50 rounded-lg",
                                     children: "No trades available"
                                 }, void 0, false, {
                                     fileName: "[project]/Desktop/craft/craft-connect/app/sign-up/artisan/page.js",
-                                    lineNumber: 2775,
+                                    lineNumber: 2748,
                                     columnNumber: 17
                                 }, this) : /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$Desktop$2f$craft$2f$craft$2d$connect$2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
                                     className: "grid grid-cols-3 gap-3 max-h-96 overflow-y-auto p-2 bg-gray-50 rounded-lg",
@@ -3076,12 +3049,12 @@ function ArtisanSignUpPage() {
                                                         className: "w-4 h-4 text-white"
                                                     }, void 0, false, {
                                                         fileName: "[project]/Desktop/craft/craft-connect/app/sign-up/artisan/page.js",
-                                                        lineNumber: 2797,
+                                                        lineNumber: 2772,
                                                         columnNumber: 29
                                                     }, this)
                                                 }, void 0, false, {
                                                     fileName: "[project]/Desktop/craft/craft-connect/app/sign-up/artisan/page.js",
-                                                    lineNumber: 2796,
+                                                    lineNumber: 2771,
                                                     columnNumber: 27
                                                 }, this),
                                                 /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$Desktop$2f$craft$2f$craft$2d$connect$2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
@@ -3089,7 +3062,7 @@ function ArtisanSignUpPage() {
                                                     children: icon.emoji
                                                 }, void 0, false, {
                                                     fileName: "[project]/Desktop/craft/craft-connect/app/sign-up/artisan/page.js",
-                                                    lineNumber: 2800,
+                                                    lineNumber: 2775,
                                                     columnNumber: 25
                                                 }, this),
                                                 /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$Desktop$2f$craft$2f$craft$2d$connect$2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
@@ -3097,19 +3070,19 @@ function ArtisanSignUpPage() {
                                                     children: category.name
                                                 }, void 0, false, {
                                                     fileName: "[project]/Desktop/craft/craft-connect/app/sign-up/artisan/page.js",
-                                                    lineNumber: 2801,
+                                                    lineNumber: 2776,
                                                     columnNumber: 25
                                                 }, this)
                                             ]
                                         }, category.id, true, {
                                             fileName: "[project]/Desktop/craft/craft-connect/app/sign-up/artisan/page.js",
-                                            lineNumber: 2785,
+                                            lineNumber: 2758,
                                             columnNumber: 23
                                         }, this);
                                     })
                                 }, void 0, false, {
                                     fileName: "[project]/Desktop/craft/craft-connect/app/sign-up/artisan/page.js",
-                                    lineNumber: 2779,
+                                    lineNumber: 2752,
                                     columnNumber: 17
                                 }, this),
                                 selectedCategory && /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$Desktop$2f$craft$2f$craft$2d$connect$2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
@@ -3122,7 +3095,7 @@ function ArtisanSignUpPage() {
                                                 children: "Selected:"
                                             }, void 0, false, {
                                                 fileName: "[project]/Desktop/craft/craft-connect/app/sign-up/artisan/page.js",
-                                                lineNumber: 2813,
+                                                lineNumber: 2788,
                                                 columnNumber: 21
                                             }, this),
                                             " ",
@@ -3130,12 +3103,12 @@ function ArtisanSignUpPage() {
                                         ]
                                     }, void 0, true, {
                                         fileName: "[project]/Desktop/craft/craft-connect/app/sign-up/artisan/page.js",
-                                        lineNumber: 2812,
+                                        lineNumber: 2787,
                                         columnNumber: 19
                                     }, this)
                                 }, void 0, false, {
                                     fileName: "[project]/Desktop/craft/craft-connect/app/sign-up/artisan/page.js",
-                                    lineNumber: 2811,
+                                    lineNumber: 2786,
                                     columnNumber: 17
                                 }, this),
                                 /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$Desktop$2f$craft$2f$craft$2d$connect$2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
@@ -3149,14 +3122,14 @@ function ArtisanSignUpPage() {
                                                     className: "w-5 h-5"
                                                 }, void 0, false, {
                                                     fileName: "[project]/Desktop/craft/craft-connect/app/sign-up/artisan/page.js",
-                                                    lineNumber: 2824,
+                                                    lineNumber: 2799,
                                                     columnNumber: 19
                                                 }, this),
                                                 " Back"
                                             ]
                                         }, void 0, true, {
                                             fileName: "[project]/Desktop/craft/craft-connect/app/sign-up/artisan/page.js",
-                                            lineNumber: 2820,
+                                            lineNumber: 2795,
                                             columnNumber: 17
                                         }, this),
                                         /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$Desktop$2f$craft$2f$craft$2d$connect$2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("button", {
@@ -3168,19 +3141,19 @@ function ArtisanSignUpPage() {
                                                     className: "w-5 h-5"
                                                 }, void 0, false, {
                                                     fileName: "[project]/Desktop/craft/craft-connect/app/sign-up/artisan/page.js",
-                                                    lineNumber: 2830,
+                                                    lineNumber: 2805,
                                                     columnNumber: 39
                                                 }, this)
                                             ]
                                         }, void 0, true, {
                                             fileName: "[project]/Desktop/craft/craft-connect/app/sign-up/artisan/page.js",
-                                            lineNumber: 2826,
+                                            lineNumber: 2801,
                                             columnNumber: 17
                                         }, this)
                                     ]
                                 }, void 0, true, {
                                     fileName: "[project]/Desktop/craft/craft-connect/app/sign-up/artisan/page.js",
-                                    lineNumber: 2819,
+                                    lineNumber: 2794,
                                     columnNumber: 15
                                 }, this),
                                 /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$Desktop$2f$craft$2f$craft$2d$connect$2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("button", {
@@ -3190,13 +3163,13 @@ function ArtisanSignUpPage() {
                                     children: "Skip & Create Account"
                                 }, void 0, false, {
                                     fileName: "[project]/Desktop/craft/craft-connect/app/sign-up/artisan/page.js",
-                                    lineNumber: 2834,
+                                    lineNumber: 2809,
                                     columnNumber: 15
                                 }, this)
                             ]
                         }, void 0, true, {
                             fileName: "[project]/Desktop/craft/craft-connect/app/sign-up/artisan/page.js",
-                            lineNumber: 2760,
+                            lineNumber: 2733,
                             columnNumber: 13
                         }, this),
                         currentStep === 3 && /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$Desktop$2f$craft$2f$craft$2d$connect$2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
@@ -3209,7 +3182,7 @@ function ArtisanSignUpPage() {
                                             children: "Profile Photo"
                                         }, void 0, false, {
                                             fileName: "[project]/Desktop/craft/craft-connect/app/sign-up/artisan/page.js",
-                                            lineNumber: 2848,
+                                            lineNumber: 2823,
                                             columnNumber: 17
                                         }, this),
                                         /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$Desktop$2f$craft$2f$craft$2d$connect$2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("p", {
@@ -3217,13 +3190,13 @@ function ArtisanSignUpPage() {
                                             children: "Take a selfie or upload a photo (optional)"
                                         }, void 0, false, {
                                             fileName: "[project]/Desktop/craft/craft-connect/app/sign-up/artisan/page.js",
-                                            lineNumber: 2851,
+                                            lineNumber: 2826,
                                             columnNumber: 17
                                         }, this)
                                     ]
                                 }, void 0, true, {
                                     fileName: "[project]/Desktop/craft/craft-connect/app/sign-up/artisan/page.js",
-                                    lineNumber: 2847,
+                                    lineNumber: 2822,
                                     columnNumber: 15
                                 }, this),
                                 !formData.profilePhotoPreview ? /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$Desktop$2f$craft$2f$craft$2d$connect$2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
@@ -3237,7 +3210,7 @@ function ArtisanSignUpPage() {
                                                 className: "w-16 h-16 text-amber-500"
                                             }, void 0, false, {
                                                 fileName: "[project]/Desktop/craft/craft-connect/app/sign-up/artisan/page.js",
-                                                lineNumber: 2863,
+                                                lineNumber: 2838,
                                                 columnNumber: 21
                                             }, this),
                                             /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$Desktop$2f$craft$2f$craft$2d$connect$2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("span", {
@@ -3245,7 +3218,7 @@ function ArtisanSignUpPage() {
                                                 children: isUploading ? "Uploading..." : "Tap to Take Photo"
                                             }, void 0, false, {
                                                 fileName: "[project]/Desktop/craft/craft-connect/app/sign-up/artisan/page.js",
-                                                lineNumber: 2864,
+                                                lineNumber: 2839,
                                                 columnNumber: 21
                                             }, this),
                                             /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$Desktop$2f$craft$2f$craft$2d$connect$2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("span", {
@@ -3253,18 +3226,18 @@ function ArtisanSignUpPage() {
                                                 children: "Max 5MB"
                                             }, void 0, false, {
                                                 fileName: "[project]/Desktop/craft/craft-connect/app/sign-up/artisan/page.js",
-                                                lineNumber: 2867,
+                                                lineNumber: 2842,
                                                 columnNumber: 21
                                             }, this)
                                         ]
                                     }, void 0, true, {
                                         fileName: "[project]/Desktop/craft/craft-connect/app/sign-up/artisan/page.js",
-                                        lineNumber: 2858,
+                                        lineNumber: 2833,
                                         columnNumber: 19
                                     }, this)
                                 }, void 0, false, {
                                     fileName: "[project]/Desktop/craft/craft-connect/app/sign-up/artisan/page.js",
-                                    lineNumber: 2857,
+                                    lineNumber: 2832,
                                     columnNumber: 17
                                 }, this) : /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$Desktop$2f$craft$2f$craft$2d$connect$2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
                                     className: "relative",
@@ -3275,7 +3248,7 @@ function ArtisanSignUpPage() {
                                             className: "w-full h-64 object-cover rounded-xl"
                                         }, void 0, false, {
                                             fileName: "[project]/Desktop/craft/craft-connect/app/sign-up/artisan/page.js",
-                                            lineNumber: 2872,
+                                            lineNumber: 2847,
                                             columnNumber: 19
                                         }, this),
                                         /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$Desktop$2f$craft$2f$craft$2d$connect$2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("button", {
@@ -3288,7 +3261,7 @@ function ArtisanSignUpPage() {
                                             children: "Change Photo"
                                         }, void 0, false, {
                                             fileName: "[project]/Desktop/craft/craft-connect/app/sign-up/artisan/page.js",
-                                            lineNumber: 2877,
+                                            lineNumber: 2852,
                                             columnNumber: 19
                                         }, this),
                                         /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$Desktop$2f$craft$2f$craft$2d$connect$2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
@@ -3296,13 +3269,13 @@ function ArtisanSignUpPage() {
                                             children: "✓ Uploaded"
                                         }, void 0, false, {
                                             fileName: "[project]/Desktop/craft/craft-connect/app/sign-up/artisan/page.js",
-                                            lineNumber: 2889,
+                                            lineNumber: 2864,
                                             columnNumber: 19
                                         }, this)
                                     ]
                                 }, void 0, true, {
                                     fileName: "[project]/Desktop/craft/craft-connect/app/sign-up/artisan/page.js",
-                                    lineNumber: 2871,
+                                    lineNumber: 2846,
                                     columnNumber: 17
                                 }, this),
                                 /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$Desktop$2f$craft$2f$craft$2d$connect$2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("input", {
@@ -3315,7 +3288,7 @@ function ArtisanSignUpPage() {
                                     className: "hidden"
                                 }, void 0, false, {
                                     fileName: "[project]/Desktop/craft/craft-connect/app/sign-up/artisan/page.js",
-                                    lineNumber: 2895,
+                                    lineNumber: 2870,
                                     columnNumber: 15
                                 }, this),
                                 /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$Desktop$2f$craft$2f$craft$2d$connect$2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
@@ -3329,14 +3302,14 @@ function ArtisanSignUpPage() {
                                                     className: "w-5 h-5"
                                                 }, void 0, false, {
                                                     fileName: "[project]/Desktop/craft/craft-connect/app/sign-up/artisan/page.js",
-                                                    lineNumber: 2910,
+                                                    lineNumber: 2885,
                                                     columnNumber: 19
                                                 }, this),
                                                 " Back"
                                             ]
                                         }, void 0, true, {
                                             fileName: "[project]/Desktop/craft/craft-connect/app/sign-up/artisan/page.js",
-                                            lineNumber: 2906,
+                                            lineNumber: 2881,
                                             columnNumber: 17
                                         }, this),
                                         /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$Desktop$2f$craft$2f$craft$2d$connect$2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("button", {
@@ -3349,19 +3322,19 @@ function ArtisanSignUpPage() {
                                                     className: "w-5 h-5"
                                                 }, void 0, false, {
                                                     fileName: "[project]/Desktop/craft/craft-connect/app/sign-up/artisan/page.js",
-                                                    lineNumber: 2917,
+                                                    lineNumber: 2892,
                                                     columnNumber: 35
                                                 }, this)
                                             ]
                                         }, void 0, true, {
                                             fileName: "[project]/Desktop/craft/craft-connect/app/sign-up/artisan/page.js",
-                                            lineNumber: 2912,
+                                            lineNumber: 2887,
                                             columnNumber: 17
                                         }, this)
                                     ]
                                 }, void 0, true, {
                                     fileName: "[project]/Desktop/craft/craft-connect/app/sign-up/artisan/page.js",
-                                    lineNumber: 2905,
+                                    lineNumber: 2880,
                                     columnNumber: 15
                                 }, this),
                                 /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$Desktop$2f$craft$2f$craft$2d$connect$2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("button", {
@@ -3371,13 +3344,13 @@ function ArtisanSignUpPage() {
                                     children: "Skip & Create Account"
                                 }, void 0, false, {
                                     fileName: "[project]/Desktop/craft/craft-connect/app/sign-up/artisan/page.js",
-                                    lineNumber: 2921,
+                                    lineNumber: 2896,
                                     columnNumber: 15
                                 }, this)
                             ]
                         }, void 0, true, {
                             fileName: "[project]/Desktop/craft/craft-connect/app/sign-up/artisan/page.js",
-                            lineNumber: 2846,
+                            lineNumber: 2821,
                             columnNumber: 13
                         }, this),
                         currentStep === 4 && /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$Desktop$2f$craft$2f$craft$2d$connect$2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
@@ -3390,7 +3363,7 @@ function ArtisanSignUpPage() {
                                             children: "Portfolio"
                                         }, void 0, false, {
                                             fileName: "[project]/Desktop/craft/craft-connect/app/sign-up/artisan/page.js",
-                                            lineNumber: 2935,
+                                            lineNumber: 2910,
                                             columnNumber: 17
                                         }, this),
                                         /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$Desktop$2f$craft$2f$craft$2d$connect$2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("p", {
@@ -3398,13 +3371,13 @@ function ArtisanSignUpPage() {
                                             children: "Upload photos or videos of your work (optional, max 10 items)"
                                         }, void 0, false, {
                                             fileName: "[project]/Desktop/craft/craft-connect/app/sign-up/artisan/page.js",
-                                            lineNumber: 2938,
+                                            lineNumber: 2913,
                                             columnNumber: 17
                                         }, this)
                                     ]
                                 }, void 0, true, {
                                     fileName: "[project]/Desktop/craft/craft-connect/app/sign-up/artisan/page.js",
-                                    lineNumber: 2934,
+                                    lineNumber: 2909,
                                     columnNumber: 15
                                 }, this),
                                 formData.portfolioUrls.length > 0 && /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$Desktop$2f$craft$2f$craft$2d$connect$2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
@@ -3418,7 +3391,7 @@ function ArtisanSignUpPage() {
                                                     controls: true
                                                 }, void 0, false, {
                                                     fileName: "[project]/Desktop/craft/craft-connect/app/sign-up/artisan/page.js",
-                                                    lineNumber: 2948,
+                                                    lineNumber: 2923,
                                                     columnNumber: 25
                                                 }, this) : /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$Desktop$2f$craft$2f$craft$2d$connect$2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("img", {
                                                     src: item.preview,
@@ -3426,7 +3399,7 @@ function ArtisanSignUpPage() {
                                                     className: "w-full h-32 object-cover rounded-lg"
                                                 }, void 0, false, {
                                                     fileName: "[project]/Desktop/craft/craft-connect/app/sign-up/artisan/page.js",
-                                                    lineNumber: 2954,
+                                                    lineNumber: 2929,
                                                     columnNumber: 25
                                                 }, this),
                                                 /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$Desktop$2f$craft$2f$craft$2d$connect$2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("button", {
@@ -3435,7 +3408,7 @@ function ArtisanSignUpPage() {
                                                     children: "×"
                                                 }, void 0, false, {
                                                     fileName: "[project]/Desktop/craft/craft-connect/app/sign-up/artisan/page.js",
-                                                    lineNumber: 2960,
+                                                    lineNumber: 2935,
                                                     columnNumber: 23
                                                 }, this),
                                                 /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$Desktop$2f$craft$2f$craft$2d$connect$2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
@@ -3444,23 +3417,23 @@ function ArtisanSignUpPage() {
                                                         className: "w-3 h-3 inline"
                                                     }, void 0, false, {
                                                         fileName: "[project]/Desktop/craft/craft-connect/app/sign-up/artisan/page.js",
-                                                        lineNumber: 2968,
+                                                        lineNumber: 2943,
                                                         columnNumber: 27
                                                     }, this) : "📷"
                                                 }, void 0, false, {
                                                     fileName: "[project]/Desktop/craft/craft-connect/app/sign-up/artisan/page.js",
-                                                    lineNumber: 2966,
+                                                    lineNumber: 2941,
                                                     columnNumber: 23
                                                 }, this)
                                             ]
                                         }, index, true, {
                                             fileName: "[project]/Desktop/craft/craft-connect/app/sign-up/artisan/page.js",
-                                            lineNumber: 2946,
+                                            lineNumber: 2921,
                                             columnNumber: 21
                                         }, this))
                                 }, void 0, false, {
                                     fileName: "[project]/Desktop/craft/craft-connect/app/sign-up/artisan/page.js",
-                                    lineNumber: 2944,
+                                    lineNumber: 2919,
                                     columnNumber: 17
                                 }, this),
                                 formData.portfolioUrls.length < 10 && /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$Desktop$2f$craft$2f$craft$2d$connect$2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("button", {
@@ -3472,7 +3445,7 @@ function ArtisanSignUpPage() {
                                             className: "w-8 h-8 text-amber-500"
                                         }, void 0, false, {
                                             fileName: "[project]/Desktop/craft/craft-connect/app/sign-up/artisan/page.js",
-                                            lineNumber: 2984,
+                                            lineNumber: 2959,
                                             columnNumber: 19
                                         }, this),
                                         /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$Desktop$2f$craft$2f$craft$2d$connect$2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("span", {
@@ -3480,7 +3453,7 @@ function ArtisanSignUpPage() {
                                             children: isUploading ? "Uploading..." : `Add ${formData.portfolioUrls.length > 0 ? "More" : "Portfolio"} Items`
                                         }, void 0, false, {
                                             fileName: "[project]/Desktop/craft/craft-connect/app/sign-up/artisan/page.js",
-                                            lineNumber: 2985,
+                                            lineNumber: 2960,
                                             columnNumber: 19
                                         }, this),
                                         /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$Desktop$2f$craft$2f$craft$2d$connect$2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("span", {
@@ -3488,13 +3461,13 @@ function ArtisanSignUpPage() {
                                             children: "Images or Videos (Max 10MB each)"
                                         }, void 0, false, {
                                             fileName: "[project]/Desktop/craft/craft-connect/app/sign-up/artisan/page.js",
-                                            lineNumber: 2994,
+                                            lineNumber: 2969,
                                             columnNumber: 19
                                         }, this)
                                     ]
                                 }, void 0, true, {
                                     fileName: "[project]/Desktop/craft/craft-connect/app/sign-up/artisan/page.js",
-                                    lineNumber: 2979,
+                                    lineNumber: 2954,
                                     columnNumber: 17
                                 }, this),
                                 /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$Desktop$2f$craft$2f$craft$2d$connect$2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("input", {
@@ -3507,7 +3480,7 @@ function ArtisanSignUpPage() {
                                     className: "hidden"
                                 }, void 0, false, {
                                     fileName: "[project]/Desktop/craft/craft-connect/app/sign-up/artisan/page.js",
-                                    lineNumber: 3000,
+                                    lineNumber: 2975,
                                     columnNumber: 15
                                 }, this),
                                 /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$Desktop$2f$craft$2f$craft$2d$connect$2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
@@ -3521,14 +3494,14 @@ function ArtisanSignUpPage() {
                                                     className: "w-5 h-5"
                                                 }, void 0, false, {
                                                     fileName: "[project]/Desktop/craft/craft-connect/app/sign-up/artisan/page.js",
-                                                    lineNumber: 3015,
+                                                    lineNumber: 2990,
                                                     columnNumber: 19
                                                 }, this),
                                                 " Back"
                                             ]
                                         }, void 0, true, {
                                             fileName: "[project]/Desktop/craft/craft-connect/app/sign-up/artisan/page.js",
-                                            lineNumber: 3011,
+                                            lineNumber: 2986,
                                             columnNumber: 17
                                         }, this),
                                         /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$Desktop$2f$craft$2f$craft$2d$connect$2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("button", {
@@ -3538,13 +3511,13 @@ function ArtisanSignUpPage() {
                                             children: loading ? "Creating Account..." : "Complete Signup"
                                         }, void 0, false, {
                                             fileName: "[project]/Desktop/craft/craft-connect/app/sign-up/artisan/page.js",
-                                            lineNumber: 3017,
+                                            lineNumber: 2992,
                                             columnNumber: 17
                                         }, this)
                                     ]
                                 }, void 0, true, {
                                     fileName: "[project]/Desktop/craft/craft-connect/app/sign-up/artisan/page.js",
-                                    lineNumber: 3010,
+                                    lineNumber: 2985,
                                     columnNumber: 15
                                 }, this),
                                 /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$Desktop$2f$craft$2f$craft$2d$connect$2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("button", {
@@ -3554,30 +3527,30 @@ function ArtisanSignUpPage() {
                                     children: "Skip & Create Account"
                                 }, void 0, false, {
                                     fileName: "[project]/Desktop/craft/craft-connect/app/sign-up/artisan/page.js",
-                                    lineNumber: 3026,
+                                    lineNumber: 3001,
                                     columnNumber: 15
                                 }, this)
                             ]
                         }, void 0, true, {
                             fileName: "[project]/Desktop/craft/craft-connect/app/sign-up/artisan/page.js",
-                            lineNumber: 2933,
+                            lineNumber: 2908,
                             columnNumber: 13
                         }, this)
                     ]
                 }, void 0, true, {
                     fileName: "[project]/Desktop/craft/craft-connect/app/sign-up/artisan/page.js",
-                    lineNumber: 2469,
+                    lineNumber: 2440,
                     columnNumber: 9
                 }, this)
             ]
         }, void 0, true, {
             fileName: "[project]/Desktop/craft/craft-connect/app/sign-up/artisan/page.js",
-            lineNumber: 2454,
+            lineNumber: 2425,
             columnNumber: 7
         }, this)
     }, void 0, false, {
         fileName: "[project]/Desktop/craft/craft-connect/app/sign-up/artisan/page.js",
-        lineNumber: 2453,
+        lineNumber: 2424,
         columnNumber: 5
     }, this);
 }
