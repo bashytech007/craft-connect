@@ -253,7 +253,6 @@
 
 // export { getAuthToken, setAuthToken, removeAuthToken };
 
-
 // API Client for CraftConnect Backend
 // Use Next.js API proxy to avoid CORS issues in development
 // Set NEXT_PUBLIC_USE_API_PROXY=false to use direct API (requires CORS on backend)
@@ -339,6 +338,14 @@ const apiRequest = async (endpoint, options = {}) => {
     }
 
     if (!response.ok) {
+      // Log the full error for debugging
+      console.error("❌ API Error:", {
+        status: response.status,
+        statusText: response.statusText,
+        url: url,
+        data: data,
+      });
+
       // Try to surface useful validation messages from common API shapes
       let errorMessage = data.detail || data.message || data.error || undefined;
 
@@ -463,7 +470,7 @@ export const api = {
       response.access_token ||
       response.access ||
       response.data?.token;
-    
+
     if (token) {
       setAuthToken(token);
     }
@@ -471,8 +478,14 @@ export const api = {
     // Store user data for easy access
     if (response.user) {
       if (typeof window !== "undefined") {
-        localStorage.setItem("user_type", response.user.user_type || response.user_type);
-        localStorage.setItem("user_id", response.user.id || response.user.user_id);
+        localStorage.setItem(
+          "user_type",
+          response.user.user_type || response.user_type
+        );
+        localStorage.setItem(
+          "user_id",
+          response.user.id || response.user.user_id
+        );
       }
     }
 
@@ -484,27 +497,49 @@ export const api = {
     return await apiRequest("/users/me/");
   },
 
-  // Get profile - According to your Swagger, this needs user_type and user_id as query params
+  // Get profile - Try /users/me/ first (uses token), fallback to /users/profile/ with params
   getProfile: async ({ userType, userId } = {}) => {
-    // If no params provided, try to get from localStorage
-    let finalUserType = userType;
-    let finalUserId = userId;
+    // First, try to use /users/me/ endpoint (simpler, uses token)
+    try {
+      const meResponse = await apiRequest("/users/me/");
+      console.log("✅ Profile fetched from /users/me/:", meResponse);
+      return meResponse;
+    } catch (error) {
+      console.log(
+        "⚠️ /users/me/ failed, trying /users/profile/ with params:",
+        error.message
+      );
 
-    if (typeof window !== "undefined") {
-      if (!finalUserType) finalUserType = localStorage.getItem("user_type");
-      if (!finalUserId) finalUserId = localStorage.getItem("user_id");
+      // Fallback to /users/profile/ with user_type and user_id
+      // If no params provided, try to get from localStorage
+      let finalUserType = userType;
+      let finalUserId = userId;
+
+      if (typeof window !== "undefined") {
+        if (!finalUserType) finalUserType = localStorage.getItem("user_type");
+        if (!finalUserId) finalUserId = localStorage.getItem("user_id");
+      }
+
+      if (!finalUserType || !finalUserId) {
+        throw new Error("Missing user_type or user_id. Please log in again.");
+      }
+
+      // Normalize user_type to lowercase (backend might expect lowercase)
+      const normalizedUserType = finalUserType.toLowerCase();
+      // Ensure user_id is a string
+      const normalizedUserId = String(finalUserId);
+
+      const query = new URLSearchParams();
+      query.append("user_type", normalizedUserType);
+      query.append("user_id", normalizedUserId);
+
+      const endpoint = `/users/profile/?${query.toString()}`;
+      console.log("🔍 Fetching profile with:", {
+        user_type: normalizedUserType,
+        user_id: normalizedUserId,
+      });
+      return await apiRequest(endpoint);
     }
-
-    if (!finalUserType || !finalUserId) {
-      throw new Error("Missing user_type or user_id. Please log in again.");
-    }
-
-    const query = new URLSearchParams();
-    query.append("user_type", finalUserType);
-    query.append("user_id", finalUserId);
-
-    const endpoint = `/users/profile/?${query.toString()}`;
-    return await apiRequest(endpoint);
   },
 
   // Get all trade categories
@@ -520,8 +555,12 @@ export const api = {
     });
   },
 
-  // Update profile
-  updateProfile: async (profileData, { userType, userId } = {}) => {
+  // Update profile - supports FormData for file uploads
+  updateProfile: async (
+    profileData,
+    { userType, userId } = {},
+    isFormData = false
+  ) => {
     // If no params provided, try to get from localStorage
     let finalUserType = userType;
     let finalUserId = userId;
@@ -535,16 +574,88 @@ export const api = {
       throw new Error("Missing user_type or user_id. Please log in again.");
     }
 
+    // Normalize user_type to lowercase (backend might expect lowercase)
+    const normalizedUserType = finalUserType.toLowerCase();
+    // Ensure user_id is a string
+    const normalizedUserId = String(finalUserId);
+
     const query = new URLSearchParams();
-    query.append("user_type", finalUserType);
-    query.append("user_id", finalUserId);
+    query.append("user_type", normalizedUserType);
+    query.append("user_id", normalizedUserId);
 
     const endpoint = `/users/profile/update/?${query.toString()}`;
 
-    return await apiRequest(endpoint, {
-      method: "PUT",
-      body: JSON.stringify(profileData),
-    });
+    // Handle FormData (for file uploads)
+    if (isFormData && profileData instanceof FormData) {
+      const token = getAuthToken();
+      const headers = {};
+      if (token) {
+        headers["Authorization"] = `Bearer ${token}`;
+      }
+      // Don't set Content-Type for FormData - browser will set it with boundary
+
+      const USE_PROXY = process.env.NEXT_PUBLIC_USE_API_PROXY !== "false";
+      const API_BASE_URL = USE_PROXY
+        ? "/api/proxy"
+        : process.env.NEXT_PUBLIC_API_URL ||
+          "https://craftconnect-a6v8.onrender.com";
+
+      let url;
+      if (USE_PROXY) {
+        const cleanEndpoint = endpoint.startsWith("/")
+          ? endpoint.substring(1)
+          : endpoint;
+        url = `${API_BASE_URL}/${cleanEndpoint}`;
+      } else {
+        url = `${API_BASE_URL}${endpoint}`;
+      }
+
+      const response = await fetch(url, {
+        method: "PUT",
+        headers,
+        body: profileData,
+      });
+
+      if (!response.ok) {
+        const contentType = response.headers.get("content-type");
+        let data = {};
+        if (contentType && contentType.includes("application/json")) {
+          data = await response.json();
+        }
+        const errorMessage =
+          data.detail ||
+          data.message ||
+          data.error ||
+          `HTTP ${response.status}: ${response.statusText}`;
+        const error = new Error(errorMessage);
+        error.status = response.status;
+        error.data = data;
+        throw error;
+      }
+
+      const contentType = response.headers.get("content-type");
+      if (contentType && contentType.includes("application/json")) {
+        return await response.json();
+      }
+      return { success: true };
+    }
+
+    // Regular JSON update
+    try {
+      return await apiRequest(endpoint, {
+        method: "PUT",
+        body: JSON.stringify(profileData),
+      });
+    } catch (error) {
+      // Log the request data for debugging
+      console.error("❌ Profile update failed:", {
+        endpoint,
+        profileData,
+        error: error.message,
+        errorData: error.data,
+      });
+      throw error;
+    }
   },
 
   // Logout

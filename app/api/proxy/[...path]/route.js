@@ -207,10 +207,22 @@ export async function PUT(request, context) {
   console.log("Proxy PUT:", url); // Debug log
 
   try {
-    const body = await request.json();
-    const headers = {
-      "Content-Type": "application/json",
-    };
+    // Check if request has FormData (for file uploads)
+    const contentType = request.headers.get("content-type");
+    let body;
+    let headers = {};
+
+    if (contentType && contentType.includes("multipart/form-data")) {
+      // Handle FormData
+      body = await request.formData();
+      // Don't set Content-Type - browser sets it with boundary
+      console.log("📤 PUT with FormData");
+    } else {
+      // Handle JSON
+      body = await request.json();
+      headers["Content-Type"] = "application/json";
+      console.log("📤 PUT with JSON:", JSON.stringify(body).substring(0, 200));
+    }
 
     // Forward auth token if present
     const authHeader = request.headers.get("authorization");
@@ -218,17 +230,29 @@ export async function PUT(request, context) {
       headers["Authorization"] = authHeader;
     }
 
-    const response = await fetch(url, {
+    const fetchOptions = {
       method: "PUT",
       headers,
-      body: JSON.stringify(body),
-    });
+    };
+
+    // Set body based on type
+    if (body instanceof FormData) {
+      fetchOptions.body = body;
+    } else {
+      fetchOptions.body = JSON.stringify(body);
+      if (!headers["Content-Type"]) {
+        headers["Content-Type"] = "application/json";
+      }
+    }
+
+    const response = await fetch(url, fetchOptions);
 
     // Check if response is HTML (error page)
-    const contentType = response.headers.get("content-type");
-    if (contentType && contentType.includes("text/html")) {
-      await response.text();
-      console.error("Received HTML instead of JSON from:", url);
+    const responseContentType = response.headers.get("content-type");
+    if (responseContentType && responseContentType.includes("text/html")) {
+      const htmlText = await response.text();
+      console.error("❌ Received HTML instead of JSON from:", url);
+      console.error("HTML Response:", htmlText.substring(0, 500));
       return Response.json(
         {
           error:
@@ -245,11 +269,28 @@ export async function PUT(request, context) {
 
     // Handle response - try JSON first, fallback to text
     let data;
-    if (contentType && contentType.includes("application/json")) {
+    if (
+      responseContentType &&
+      responseContentType.includes("application/json")
+    ) {
       data = await response.json();
     } else {
       const text = await response.text();
       data = text ? { message: text } : {};
+    }
+
+    // Log error details for debugging (especially for 500 errors)
+    if (!response.ok) {
+      console.error("❌ Backend PUT error:", {
+        status: response.status,
+        statusText: response.statusText,
+        url: url,
+        requestBody:
+          body instanceof FormData
+            ? "[FormData]"
+            : JSON.stringify(body).substring(0, 200),
+        responseData: data,
+      });
     }
 
     return Response.json(data, {
