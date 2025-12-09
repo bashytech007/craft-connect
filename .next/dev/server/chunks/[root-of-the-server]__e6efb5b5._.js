@@ -54,7 +54,7 @@ async function POST(request, context) {
     const apiPath = Array.isArray(path) ? path.join("/") : path;
     // Get API base URL - ensure it doesn't have trailing slash
     // Default to production Render backend
-    let API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "https://craftconnect-a6v8.onrender.com";
+    let API_BASE_URL = ("TURBOPACK compile-time value", "https://craftconnect-a6v8.onrender.com/api") || "https://craftconnect-a6v8.onrender.com";
     API_BASE_URL = API_BASE_URL.replace(/\/$/, ""); // Remove trailing slash
     // If API_BASE_URL doesn't include /api, add it (for backward compatibility)
     if (!API_BASE_URL.includes("/api")) {
@@ -78,11 +78,32 @@ async function POST(request, context) {
         if (authHeader) {
             headers["Authorization"] = authHeader;
         }
-        const response = await fetch(url, {
-            method: "POST",
-            headers,
-            body: JSON.stringify(body)
-        });
+        let response;
+        try {
+            response = await fetch(url, {
+                method: "POST",
+                headers,
+                body: JSON.stringify(body)
+            });
+        } catch (fetchError) {
+            // Handle network errors (connection refused, DNS errors, etc.)
+            console.error("❌ Fetch failed:", fetchError.message);
+            console.error("❌ Target URL:", url);
+            console.error("❌ Error details:", {
+                name: fetchError.name,
+                message: fetchError.message,
+                cause: fetchError.cause
+            });
+            return Response.json({
+                error: "Failed to connect to backend server",
+                detail: fetchError.message || "Network error. Please check if the backend server is running.",
+                url: url,
+                suggestion: "Make sure your backend server is running and accessible at the configured URL."
+            }, {
+                status: 503
+            } // Service Unavailable
+            );
+        }
         // Check if response is HTML (error page)
         const contentType = response.headers.get("content-type");
         if (contentType && contentType.includes("text/html")) {
@@ -131,7 +152,7 @@ async function GET(request, context) {
     const apiPath = Array.isArray(path) ? path.join("/") : path;
     // Get API base URL - ensure it doesn't have trailing slash
     // Default to production Render backend
-    let API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "https://craftconnect-a6v8.onrender.com";
+    let API_BASE_URL = ("TURBOPACK compile-time value", "https://craftconnect-a6v8.onrender.com/api") || "https://craftconnect-a6v8.onrender.com";
     API_BASE_URL = API_BASE_URL.replace(/\/$/, ""); // Remove trailing slash
     // If API_BASE_URL doesn't include /api, add it (for backward compatibility)
     if (!API_BASE_URL.includes("/api")) {
@@ -143,7 +164,10 @@ async function GET(request, context) {
     if (!cleanApiPath.endsWith("/")) {
         cleanApiPath = cleanApiPath + "/";
     }
-    const url = `${API_BASE_URL}/${cleanApiPath}`;
+    // Get query parameters from the request URL and append them
+    const searchParams = request.nextUrl.searchParams;
+    const queryString = searchParams.toString();
+    const url = queryString ? `${API_BASE_URL}/${cleanApiPath}?${queryString}` : `${API_BASE_URL}/${cleanApiPath}`;
     console.log("Proxy GET:", url); // Debug log
     try {
         const headers = {};
@@ -152,10 +176,31 @@ async function GET(request, context) {
         if (authHeader) {
             headers["Authorization"] = authHeader;
         }
-        const response = await fetch(url, {
-            method: "GET",
-            headers
-        });
+        let response;
+        try {
+            response = await fetch(url, {
+                method: "GET",
+                headers
+            });
+        } catch (fetchError) {
+            // Handle network errors (connection refused, DNS errors, etc.)
+            console.error("❌ Fetch failed:", fetchError.message);
+            console.error("❌ Target URL:", url);
+            console.error("❌ Error details:", {
+                name: fetchError.name,
+                message: fetchError.message,
+                cause: fetchError.cause
+            });
+            return Response.json({
+                error: "Failed to connect to backend server",
+                detail: fetchError.message || "Network error. Please check if the backend server is running.",
+                url: url,
+                suggestion: "Make sure your backend server is running and accessible at the configured URL."
+            }, {
+                status: 503
+            } // Service Unavailable
+            );
+        }
         // Check if response is HTML (error page)
         const contentType = response.headers.get("content-type");
         if (contentType && contentType.includes("text/html")) {
@@ -178,6 +223,15 @@ async function GET(request, context) {
             data = text ? {
                 message: text
             } : {};
+        }
+        // Log error details for debugging (especially for 500 errors)
+        if (!response.ok) {
+            console.error("❌ Backend GET error:", {
+                status: response.status,
+                statusText: response.statusText,
+                url: url,
+                responseData: data
+            });
         }
         return Response.json(data, {
             status: response.status,
@@ -204,7 +258,7 @@ async function PUT(request, context) {
     const apiPath = Array.isArray(path) ? path.join("/") : path;
     // Get API base URL - ensure it doesn't have trailing slash
     // Default to production Render backend
-    let API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "https://craftconnect-a6v8.onrender.com";
+    let API_BASE_URL = ("TURBOPACK compile-time value", "https://craftconnect-a6v8.onrender.com/api") || "https://craftconnect-a6v8.onrender.com";
     API_BASE_URL = API_BASE_URL.replace(/\/$/, ""); // Remove trailing slash
     // If API_BASE_URL doesn't include /api, add it (for backward compatibility)
     if (!API_BASE_URL.includes("/api")) {
@@ -219,25 +273,67 @@ async function PUT(request, context) {
     const url = `${API_BASE_URL}/${cleanApiPath}`;
     console.log("Proxy PUT:", url); // Debug log
     try {
-        const body = await request.json();
-        const headers = {
-            "Content-Type": "application/json"
-        };
+        // Check if request has FormData (for file uploads)
+        const contentType = request.headers.get("content-type");
+        let body;
+        let headers = {};
+        if (contentType && contentType.includes("multipart/form-data")) {
+            // Handle FormData
+            body = await request.formData();
+            // Don't set Content-Type - browser sets it with boundary
+            console.log("📤 PUT with FormData");
+        } else {
+            // Handle JSON
+            body = await request.json();
+            headers["Content-Type"] = "application/json";
+            console.log("📤 PUT with JSON:", JSON.stringify(body).substring(0, 200));
+        }
         // Forward auth token if present
         const authHeader = request.headers.get("authorization");
         if (authHeader) {
             headers["Authorization"] = authHeader;
         }
-        const response = await fetch(url, {
+        const fetchOptions = {
             method: "PUT",
-            headers,
-            body: JSON.stringify(body)
-        });
+            headers
+        };
+        // Set body based on type
+        if (body instanceof FormData) {
+            fetchOptions.body = body;
+        } else {
+            fetchOptions.body = JSON.stringify(body);
+            if (!headers["Content-Type"]) {
+                headers["Content-Type"] = "application/json";
+            }
+        }
+        let response;
+        try {
+            response = await fetch(url, fetchOptions);
+        } catch (fetchError) {
+            // Handle network errors (connection refused, DNS errors, etc.)
+            console.error("❌ Fetch failed:", fetchError.message);
+            console.error("❌ Target URL:", url);
+            console.error("❌ Error details:", {
+                name: fetchError.name,
+                message: fetchError.message,
+                cause: fetchError.cause
+            });
+            return Response.json({
+                error: "Failed to connect to backend server",
+                detail: fetchError.message || "Network error. Please check if the backend server is running.",
+                url: url,
+                suggestion: "Make sure your backend server is running and accessible at the configured URL."
+            }, {
+                status: 503
+            } // Service Unavailable
+            );
+        }
         // Check if response is HTML (error page)
-        const contentType = response.headers.get("content-type");
-        if (contentType && contentType.includes("text/html")) {
-            await response.text();
-            console.error("Received HTML instead of JSON from:", url);
+        const responseContentType = response.headers.get("content-type");
+        if (responseContentType && responseContentType.includes("text/html")) {
+            const htmlText = await response.text();
+            console.error("❌ Received HTML instead of JSON from:", url);
+            console.error("HTML Response:", htmlText.substring(0, 500));
             return Response.json({
                 error: "Backend server returned HTML instead of JSON. Check if the API URL is correct.",
                 detail: "The server at " + url + " returned an HTML page (likely an error page).",
@@ -248,13 +344,23 @@ async function PUT(request, context) {
         }
         // Handle response - try JSON first, fallback to text
         let data;
-        if (contentType && contentType.includes("application/json")) {
+        if (responseContentType && responseContentType.includes("application/json")) {
             data = await response.json();
         } else {
             const text = await response.text();
             data = text ? {
                 message: text
             } : {};
+        }
+        // Log error details for debugging (especially for 500 errors)
+        if (!response.ok) {
+            console.error("❌ Backend PUT error:", {
+                status: response.status,
+                statusText: response.statusText,
+                url: url,
+                requestBody: body instanceof FormData ? "[FormData]" : JSON.stringify(body).substring(0, 200),
+                responseData: data
+            });
         }
         return Response.json(data, {
             status: response.status,

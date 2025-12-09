@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
+import Link from "next/link";
 import { useAuth } from "../../src/contexts/AuthContext";
 import { api } from "../../src/lib/api";
 import Image from "next/image";
@@ -37,7 +38,7 @@ export default function ProfilePage() {
   const [isUploading, setIsUploading] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const profilePhotoRef = useRef(null);
-  
+
   const [editData, setEditData] = useState({
     first_name: "",
     last_name: "",
@@ -78,15 +79,56 @@ export default function ProfilePage() {
         location: profileData?.location || "",
         bio: profileData?.bio || "",
         language: profileData?.language || "English",
-        profile_picture: profileData?.profile_picture || profileData?.profile_photo_url || profileData?.profile_photo || null,
+        profile_picture:
+          profileData?.profile_picture ||
+          profileData?.profile_photo_url ||
+          profileData?.profile_photo ||
+          null,
       });
     } catch (error) {
       console.error("Error fetching profile:", error);
+      // Don't redirect on 401/400 if we have user data from auth context
+      // Just show empty profile or error message
       if (
-        error.message?.includes("401") ||
-        error.message?.includes("Unauthorized")
+        (error.message?.includes("401") ||
+          error.message?.includes("Unauthorized")) &&
+        !authUser
       ) {
         router.push("/sign-in");
+        return;
+      }
+
+      // If we have authUser but API fails, set profile from authUser so UI can still render
+      if (authUser) {
+        setProfile({
+          first_name: authUser.first_name || authUser.user?.first_name || "",
+          last_name: authUser.last_name || authUser.user?.last_name || "",
+          email_address:
+            authUser.email_address ||
+            authUser.email ||
+            authUser.user?.email_address ||
+            "",
+          location:
+            authUser.location || authUser.user?.location || "Not specified",
+          bio: authUser.bio || authUser.user?.bio || "",
+          language: authUser.language || authUser.user?.language || "English",
+          profile_picture:
+            authUser.profile_picture ||
+            authUser.profile_photo_url ||
+            authUser.user?.profile_picture ||
+            null,
+        });
+        setEditData({
+          first_name: authUser.first_name || authUser.user?.first_name || "",
+          last_name: authUser.last_name || authUser.user?.last_name || "",
+          phone_number:
+            authUser.phone_number || authUser.user?.phone_number || "",
+          location: authUser.location || authUser.user?.location || "",
+          bio: authUser.bio || authUser.user?.bio || "",
+          language: authUser.language || authUser.user?.language || "English",
+          profile_picture:
+            authUser.profile_picture || authUser.profile_photo_url || null,
+        });
       }
     } finally {
       setLoading(false);
@@ -143,23 +185,26 @@ export default function ProfilePage() {
 
       // Option 1: Upload to R2 first, then update profile with URL
       const result = await handleFileUpload(file, userId, "profile");
-      
-      // Update profile with new photo URL - try both field names
+
+      // Update profile with new photo URL - backend expects FormData
       const updatedProfile = await api.updateProfile(
-        { 
+        {
           profile_picture: result.url, // Try profile_picture first
-          profile_photo_url: result.url // Also include profile_photo_url as fallback
+          profile_photo_url: result.url, // Also include profile_photo_url as fallback
         },
-        { userType, userId }
+        { userType, userId },
+        false // FormData conversion handled in api.js
       );
-      
+
       // Update local state
-      setProfile(updatedProfile || {
-        ...profile,
-        profile_picture: result.url,
-        profile_photo_url: result.url,
-      });
-      
+      setProfile(
+        updatedProfile || {
+          ...profile,
+          profile_picture: result.url,
+          profile_photo_url: result.url,
+        }
+      );
+
       setEditData({
         ...editData,
         profile_picture: result.url,
@@ -170,7 +215,11 @@ export default function ProfilePage() {
       await getProfile();
     } catch (err) {
       console.error("Profile photo upload error:", err);
-      const errorMessage = err.data?.detail || err.data?.message || err.message || "Failed to upload profile photo";
+      const errorMessage =
+        err.data?.detail ||
+        err.data?.message ||
+        err.message ||
+        "Failed to upload profile photo";
       alert(errorMessage);
     } finally {
       setIsUploading(false);
@@ -200,7 +249,7 @@ export default function ProfilePage() {
         userType,
         userId,
       });
-      
+
       setProfile(updatedProfile || { ...profile, ...updateData });
       setEditing(false);
       alert("Profile updated successfully!");
@@ -229,13 +278,17 @@ export default function ProfilePage() {
         authUser.userType ||
         authUser?.user?.user_type ||
         authUser?.profile_type ||
-        (typeof window !== "undefined" ? localStorage.getItem("user_type") : null),
+        (typeof window !== "undefined"
+          ? localStorage.getItem("user_type")
+          : null),
       userId:
         authUser.user_id ||
         authUser.userId ||
         authUser?.user?.id ||
         authUser?.id ||
-        (typeof window !== "undefined" ? localStorage.getItem("user_id") : null),
+        (typeof window !== "undefined"
+          ? localStorage.getItem("user_id")
+          : null),
     };
   };
 
@@ -248,14 +301,55 @@ export default function ProfilePage() {
   const skillLevel = profile?.skill_level || 4;
   const maxSkillLevel = 5;
 
-  // Get profile picture URL - check multiple possible field names
-  const profilePictureUrl = 
-    profile?.profile_picture || 
-    profile?.profile_photo_url || 
-    profile?.profile_photo ||
-    editData.profile_picture;
+  // Get API base URL for images
+  const getImageUrl = (url) => {
+    if (!url) return null;
+    if (url.startsWith("http")) return url;
 
-  if (loading) {
+    // Get base URL without /api suffix
+    let baseUrl =
+      process.env.NEXT_PUBLIC_API_URL ||
+      "https://craftconnect-a6v8.onrender.com";
+
+    // Remove /api if present at the end
+    if (baseUrl.endsWith("/api")) {
+      baseUrl = baseUrl.slice(0, -4);
+    }
+    if (baseUrl.endsWith("/api/")) {
+      baseUrl = baseUrl.slice(0, -5);
+    }
+
+    // Ensure baseUrl doesn't have trailing slash
+    baseUrl = baseUrl.replace(/\/$/, "");
+
+    // Ensure url has leading slash
+    const path = url.startsWith("/") ? url : `/${url}`;
+
+    return `${baseUrl}${path}`;
+  };
+
+  // Get profile picture URL - check multiple possible field names
+  const rawProfilePictureUrl =
+    profile?.profile_picture ||
+    profile?.profile_photo_url ||
+    profile?.profile_photo ||
+    editData?.profile_picture ||
+    (typeof window !== "undefined"
+      ? localStorage.getItem("profile_picture")
+      : null) ||
+    null;
+
+  const profilePictureUrl = getImageUrl(rawProfilePictureUrl);
+
+  // Check if URL is valid (not just a placeholder)
+  const hasValidProfilePicture =
+    profilePictureUrl &&
+    profilePictureUrl !== "null" &&
+    profilePictureUrl !== "undefined" &&
+    (profilePictureUrl.startsWith("http") || profilePictureUrl.startsWith("/"));
+
+  // Show loading only if we don't have any user data at all
+  if (loading && !authUser && !profile) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gray-50">
         <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-amber-500"></div>
@@ -275,9 +369,13 @@ export default function ProfilePage() {
                 onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
                 className="text-gray-700"
               >
-                {mobileMenuOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
+                {mobileMenuOpen ? (
+                  <X className="w-5 h-5" />
+                ) : (
+                  <Menu className="w-5 h-5" />
+                )}
               </button>
-              <div className="flex items-center gap-2">
+              <Link href="/" className="flex items-center gap-2">
                 <Image
                   src={cclogo}
                   alt="CraftConnect"
@@ -287,7 +385,7 @@ export default function ProfilePage() {
                   unoptimized
                 />
                 <span className="font-bold text-gray-900">CraftConnet</span>
-              </div>
+              </Link>
             </div>
             <div className="flex items-center gap-3">
               <Search className="w-5 h-5 text-gray-700" />
@@ -299,7 +397,7 @@ export default function ProfilePage() {
               </div>
             </div>
           </div>
-          
+
           {/* Search Bar */}
           <div className="mt-3 relative">
             <input
@@ -321,7 +419,7 @@ export default function ProfilePage() {
               <button className="text-gray-700">
                 <Menu className="w-5 h-5" />
               </button>
-              <div className="flex items-center gap-2">
+              <Link href="/" className="flex items-center gap-2">
                 <Image
                   src={cclogo}
                   alt="CraftConnect"
@@ -330,8 +428,10 @@ export default function ProfilePage() {
                   className="w-8 h-8"
                   unoptimized
                 />
-                <span className="font-bold text-gray-900 text-lg">CraftConnet</span>
-              </div>
+                <span className="font-bold text-gray-900 text-lg">
+                  CraftConnet
+                </span>
+              </Link>
               <div className="relative ml-4">
                 <input
                   type="text"
@@ -342,13 +442,22 @@ export default function ProfilePage() {
               </div>
             </div>
             <nav className="flex items-center gap-6">
-              <a href="#" className="text-gray-700 hover:text-amber-600 text-sm font-medium flex items-center gap-1">
+              <a
+                href="#"
+                className="text-gray-700 hover:text-amber-600 text-sm font-medium flex items-center gap-1"
+              >
                 Learning <span className="text-xs">▼</span>
               </a>
-              <a href="#" className="text-gray-700 hover:text-amber-600 text-sm font-medium flex items-center gap-1">
+              <a
+                href="#"
+                className="text-gray-700 hover:text-amber-600 text-sm font-medium flex items-center gap-1"
+              >
                 Explore <span className="text-xs">▼</span>
               </a>
-              <a href="#" className="text-gray-700 hover:text-amber-600 text-sm font-medium flex items-center gap-1">
+              <a
+                href="#"
+                className="text-gray-700 hover:text-amber-600 text-sm font-medium flex items-center gap-1"
+              >
                 English <span className="text-xs">▼</span>
               </a>
               <div className="flex items-center gap-2">
@@ -377,16 +486,38 @@ export default function ProfilePage() {
               <div className="flex flex-col items-center md:items-start md:w-1/3">
                 {/* Profile Picture */}
                 <div className="relative mb-4">
-                  <div className="w-32 h-32 md:w-40 md:h-40 rounded-full overflow-hidden border-4 border-white shadow-lg bg-gradient-to-br from-amber-400 to-amber-600">
-                    {profilePictureUrl ? (
-                      <img
-                        src={profilePictureUrl}
-                        alt="Profile"
-                        className="w-full h-full object-cover"
-                      />
+                  <div className="w-32 h-32 md:w-40 md:h-40 rounded-full overflow-hidden border-4 border-white shadow-lg bg-gradient-to-br from-amber-400 to-amber-600 relative">
+                    {hasValidProfilePicture ? (
+                      <>
+                        <img
+                          key={profilePictureUrl}
+                          src={profilePictureUrl}
+                          alt="Profile"
+                          className="w-full h-full object-cover"
+                          onError={(e) => {
+                            // If image fails to load, hide it and show fallback
+                            console.error(
+                              "Failed to load profile picture:",
+                              profilePictureUrl
+                            );
+                            const parent = e.target.parentElement;
+                            e.target.style.display = "none";
+                            const fallback =
+                              parent.querySelector(".profile-fallback");
+                            if (fallback) fallback.style.display = "flex";
+                          }}
+                        />
+                        <div className="profile-fallback w-full h-full hidden absolute inset-0 flex items-center justify-center text-white text-4xl md:text-5xl font-bold bg-gradient-to-br from-amber-400 to-amber-600">
+                          {profile?.first_name?.charAt(0) ||
+                            profile?.first_name?.[0] ||
+                            "U"}
+                        </div>
+                      </>
                     ) : (
                       <div className="w-full h-full flex items-center justify-center text-white text-4xl md:text-5xl font-bold">
-                        {profile?.first_name?.charAt(0) || "U"}
+                        {profile?.first_name?.charAt(0) ||
+                          profile?.first_name?.[0] ||
+                          "U"}
                       </div>
                     )}
                   </div>
@@ -462,7 +593,9 @@ export default function ProfilePage() {
                     <div className="flex items-start gap-3">
                       <Mail className="w-5 h-5 text-gray-400 mt-0.5 flex-shrink-0" />
                       <div className="text-gray-700 text-sm">
-                        {profile?.email_address || authUser?.email_address || "No email"}
+                        {profile?.email_address ||
+                          authUser?.email_address ||
+                          "No email"}
                       </div>
                     </div>
                     <div className="flex items-start gap-3">
@@ -472,7 +605,9 @@ export default function ProfilePage() {
                       </div>
                     </div>
                     <div className="flex items-center gap-2">
-                      <span className="text-green-600 font-semibold">Professional</span>
+                      <span className="text-green-600 font-semibold">
+                        Professional
+                      </span>
                       <Check className="w-4 h-4 text-green-600" />
                     </div>
                   </div>
@@ -480,7 +615,9 @@ export default function ProfilePage() {
 
                 {/* About Section */}
                 <div className="mb-6">
-                  <h3 className="text-xl font-bold text-gray-900 mb-3">About</h3>
+                  <h3 className="text-xl font-bold text-gray-900 mb-3">
+                    About
+                  </h3>
                   {!editing ? (
                     <>
                       <p className="text-gray-700 leading-relaxed mb-4">

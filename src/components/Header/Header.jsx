@@ -10,7 +10,7 @@
 //   return (
 //     <header className="bg-white shadow-sm border-b">
 //       <div className="max-w-screen-xl mx-auto px-4 md:px-8 flex justify-between items-center h-16">
-        
+
 //         {/* Left side: Hamburger + Logo + Brand */}
 //         <div className="flex items-center space-x-2">
 //           {/* Hamburger only visible on mobile */}
@@ -81,8 +81,8 @@
 //       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
 //         <div className="flex justify-between items-center">
 //           {/* Logo */}
-//           <div 
-//             className="flex items-center gap-2 cursor-pointer" 
+//           <div
+//             className="flex items-center gap-2 cursor-pointer"
 //             onClick={() => navigate('/')}
 //           >
 //             <div className="w-10 h-10 bg-amber-500 rounded-lg flex items-center justify-center">
@@ -106,13 +106,13 @@
 
 //           {/* Auth Buttons */}
 //           <div className="flex items-center gap-4">
-//             <button 
+//             <button
 //               onClick={() => navigate('/sign-in')}
 //               className="text-gray-700 hover:text-amber-600 transition-colors font-medium"
 //             >
 //               Login
 //             </button>
-//             <button 
+//             <button
 //               onClick={() => navigate('/sign-up')}
 //               className="bg-amber-500 text-white px-6 py-2 rounded-lg font-semibold hover:bg-amber-600 transition-colors"
 //             >
@@ -163,8 +163,8 @@
 //       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
 //         <div className="flex justify-between items-center">
 //           {/* Logo */}
-//           <div 
-//             className="flex items-center gap-2 cursor-pointer" 
+//           <div
+//             className="flex items-center gap-2 cursor-pointer"
 //             onClick={() => navigate('/')}
 //           >
 //             <div className="w-10 h-10 bg-amber-500 rounded-lg flex items-center justify-center">
@@ -199,7 +199,7 @@
 //                     {user.email?.split('@')[0]}
 //                   </span>
 //                 </div>
-//                 <button 
+//                 <button
 //                   onClick={handleSignOut}
 //                   className="flex items-center gap-2 text-gray-700 hover:text-red-600 transition-colors font-medium"
 //                 >
@@ -210,13 +210,13 @@
 //             ) : (
 //               // Logged out state
 //               <>
-//                 <button 
+//                 <button
 //                   onClick={() => navigate('/sign-in')}
 //                   className="text-gray-700 hover:text-amber-600 transition-colors font-medium"
 //                 >
 //                   Login
 //                 </button>
-//                 <button 
+//                 <button
 //                   onClick={() => navigate('/sign-up')}
 //                   className="bg-amber-500 text-white px-6 py-2 rounded-lg font-semibold hover:bg-amber-600 transition-colors"
 //                 >
@@ -258,8 +258,8 @@ function Header() {
       <div className="max-w-screen-xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex justify-between items-center h-16 md:h-20">
           {/* Logo */}
-          <div 
-            className="flex items-center gap-2 cursor-pointer" 
+          <div
+            className="flex items-center gap-2 cursor-pointer"
             onClick={() => router.push("/")}
           >
             <Image
@@ -267,14 +267,15 @@ function Header() {
               alt="CraftConnect Logo"
               width={40}
               height={40}
+              style={{ height: "auto" }}
               className="h-8 md:h-10 w-auto"
               unoptimized
             />
             <span className="font-bold text-gray-900 text-lg md:text-xl">
               CraftConnect
             </span>
-            </div>
-          
+          </div>
+
           {/* Desktop Navigation */}
           <nav className="hidden md:flex items-center gap-4 lg:gap-6">
             <div className="flex items-center gap-1">
@@ -283,7 +284,7 @@ function Header() {
                 className="text-gray-700 hover:text-amber-600 text-sm font-medium transition-colors"
               >
                 Learning
-            </a>
+              </a>
               <Image
                 src={dropdown}
                 alt="dropdown"
@@ -298,8 +299,8 @@ function Header() {
                 href="#"
                 className="text-gray-700 hover:text-amber-600 text-sm font-medium transition-colors"
               >
-              Explore
-            </a>
+                Explore
+              </a>
               <Image
                 src={dropdown}
                 alt="dropdown"
@@ -314,8 +315,8 @@ function Header() {
                 href="#"
                 className="text-gray-700 hover:text-amber-600 text-sm font-medium transition-colors"
               >
-              English
-            </a>
+                English
+              </a>
               <Image
                 src={globeIcon}
                 alt="globe"
@@ -329,14 +330,14 @@ function Header() {
               <div className="w-20 h-8 bg-gray-200 animate-pulse rounded"></div>
             ) : user ? (
               <>
-                <button 
+                <button
                   onClick={() => router.push("/profile")}
                   className="flex items-center gap-1 text-gray-700 hover:text-amber-600 text-sm font-medium transition-colors"
                 >
                   <span>Sign in</span>
                   <User className="w-4 h-4" />
                 </button>
-                <button 
+                <button
                   onClick={handleSignOut}
                   className="flex items-center gap-2 text-gray-700 hover:text-red-600 transition-colors font-medium text-sm"
                 >
@@ -421,7 +422,7 @@ function Header() {
             </a>
             {!user && (
               <>
-                <button 
+                <button
                   onClick={() => {
                     router.push("/sign-in");
                     setIsMobileMenuOpen(false);
@@ -430,7 +431,7 @@ function Header() {
                 >
                   Sign in
                 </button>
-                <button 
+                <button
                   onClick={() => {
                     router.push("/join");
                     setIsMobileMenuOpen(false);

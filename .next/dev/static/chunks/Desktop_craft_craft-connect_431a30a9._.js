@@ -144,8 +144,8 @@ if (typeof globalThis.$RefreshHelpers$ === 'object' && globalThis.$RefreshHelper
 //       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
 //         <div className="flex justify-between items-center">
 //           {/* Logo */}
-//           <div 
-//             className="flex items-center gap-2 cursor-pointer" 
+//           <div
+//             className="flex items-center gap-2 cursor-pointer"
 //             onClick={() => navigate('/')}
 //           >
 //             <div className="w-10 h-10 bg-amber-500 rounded-lg flex items-center justify-center">
@@ -167,13 +167,13 @@ if (typeof globalThis.$RefreshHelpers$ === 'object' && globalThis.$RefreshHelper
 //           </nav>
 //           {/* Auth Buttons */}
 //           <div className="flex items-center gap-4">
-//             <button 
+//             <button
 //               onClick={() => navigate('/sign-in')}
 //               className="text-gray-700 hover:text-amber-600 transition-colors font-medium"
 //             >
 //               Login
 //             </button>
-//             <button 
+//             <button
 //               onClick={() => navigate('/sign-up')}
 //               className="bg-amber-500 text-white px-6 py-2 rounded-lg font-semibold hover:bg-amber-600 transition-colors"
 //             >
@@ -216,8 +216,8 @@ if (typeof globalThis.$RefreshHelpers$ === 'object' && globalThis.$RefreshHelper
 //       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
 //         <div className="flex justify-between items-center">
 //           {/* Logo */}
-//           <div 
-//             className="flex items-center gap-2 cursor-pointer" 
+//           <div
+//             className="flex items-center gap-2 cursor-pointer"
 //             onClick={() => navigate('/')}
 //           >
 //             <div className="w-10 h-10 bg-amber-500 rounded-lg flex items-center justify-center">
@@ -250,7 +250,7 @@ if (typeof globalThis.$RefreshHelpers$ === 'object' && globalThis.$RefreshHelper
 //                     {user.email?.split('@')[0]}
 //                   </span>
 //                 </div>
-//                 <button 
+//                 <button
 //                   onClick={handleSignOut}
 //                   className="flex items-center gap-2 text-gray-700 hover:text-red-600 transition-colors font-medium"
 //                 >
@@ -261,13 +261,13 @@ if (typeof globalThis.$RefreshHelpers$ === 'object' && globalThis.$RefreshHelper
 //             ) : (
 //               // Logged out state
 //               <>
-//                 <button 
+//                 <button
 //                   onClick={() => navigate('/sign-in')}
 //                   className="text-gray-700 hover:text-amber-600 transition-colors font-medium"
 //                 >
 //                   Login
 //                 </button>
-//                 <button 
+//                 <button
 //                   onClick={() => navigate('/sign-up')}
 //                   className="bg-amber-500 text-white px-6 py-2 rounded-lg font-semibold hover:bg-amber-600 transition-colors"
 //                 >
@@ -332,6 +332,9 @@ function Header() {
                                     alt: "CraftConnect Logo",
                                     width: 40,
                                     height: 40,
+                                    style: {
+                                        height: "auto"
+                                    },
                                     className: "h-8 md:h-10 w-auto",
                                     unoptimized: true
                                 }, void 0, false, {
@@ -344,7 +347,7 @@ function Header() {
                                     children: "CraftConnect"
                                 }, void 0, false, {
                                     fileName: "[project]/Desktop/craft/craft-connect/src/components/Header/Header.jsx",
-                                    lineNumber: 273,
+                                    lineNumber: 274,
                                     columnNumber: 13
                                 }, this)
                             ]
@@ -365,7 +368,7 @@ function Header() {
                                             children: "Learning"
                                         }, void 0, false, {
                                             fileName: "[project]/Desktop/craft/craft-connect/src/components/Header/Header.jsx",
-                                            lineNumber: 281,
+                                            lineNumber: 282,
                                             columnNumber: 15
                                         }, this),
                                         /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$Desktop$2f$craft$2f$craft$2d$connect$2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])(__TURBOPACK__imported__module__$5b$project$5d2f$Desktop$2f$craft$2f$craft$2d$connect$2f$node_modules$2f$next$2f$image$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["default"], {
@@ -377,13 +380,13 @@ function Header() {
                                             unoptimized: true
                                         }, void 0, false, {
                                             fileName: "[project]/Desktop/craft/craft-connect/src/components/Header/Header.jsx",
-                                            lineNumber: 287,
+                                            lineNumber: 288,
                                             columnNumber: 15
                                         }, this)
                                     ]
                                 }, void 0, true, {
                                     fileName: "[project]/Desktop/craft/craft-connect/src/components/Header/Header.jsx",
-                                    lineNumber: 280,
+                                    lineNumber: 281,
                                     columnNumber: 13
                                 }, this),
                                 /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$Desktop$2f$craft$2f$craft$2d$connect$2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
@@ -395,7 +398,7 @@ function Header() {
                                             children: "Explore"
                                         }, void 0, false, {
                                             fileName: "[project]/Desktop/craft/craft-connect/src/components/Header/Header.jsx",
-                                            lineNumber: 297,
+                                            lineNumber: 298,
                                             columnNumber: 15
                                         }, this),
                                         /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$Desktop$2f$craft$2f$craft$2d$connect$2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])(__TURBOPACK__imported__module__$5b$project$5d2f$Desktop$2f$craft$2f$craft$2d$connect$2f$node_modules$2f$next$2f$image$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["default"], {
@@ -407,13 +410,13 @@ function Header() {
                                             unoptimized: true
                                         }, void 0, false, {
                                             fileName: "[project]/Desktop/craft/craft-connect/src/components/Header/Header.jsx",
-                                            lineNumber: 303,
+                                            lineNumber: 304,
                                             columnNumber: 15
                                         }, this)
                                     ]
                                 }, void 0, true, {
                                     fileName: "[project]/Desktop/craft/craft-connect/src/components/Header/Header.jsx",
-                                    lineNumber: 296,
+                                    lineNumber: 297,
                                     columnNumber: 13
                                 }, this),
                                 /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$Desktop$2f$craft$2f$craft$2d$connect$2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
@@ -425,7 +428,7 @@ function Header() {
                                             children: "English"
                                         }, void 0, false, {
                                             fileName: "[project]/Desktop/craft/craft-connect/src/components/Header/Header.jsx",
-                                            lineNumber: 313,
+                                            lineNumber: 314,
                                             columnNumber: 15
                                         }, this),
                                         /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$Desktop$2f$craft$2f$craft$2d$connect$2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])(__TURBOPACK__imported__module__$5b$project$5d2f$Desktop$2f$craft$2f$craft$2d$connect$2f$node_modules$2f$next$2f$image$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["default"], {
@@ -437,20 +440,20 @@ function Header() {
                                             unoptimized: true
                                         }, void 0, false, {
                                             fileName: "[project]/Desktop/craft/craft-connect/src/components/Header/Header.jsx",
-                                            lineNumber: 319,
+                                            lineNumber: 320,
                                             columnNumber: 15
                                         }, this)
                                     ]
                                 }, void 0, true, {
                                     fileName: "[project]/Desktop/craft/craft-connect/src/components/Header/Header.jsx",
-                                    lineNumber: 312,
+                                    lineNumber: 313,
                                     columnNumber: 13
                                 }, this),
                                 loading ? /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$Desktop$2f$craft$2f$craft$2d$connect$2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
                                     className: "w-20 h-8 bg-gray-200 animate-pulse rounded"
                                 }, void 0, false, {
                                     fileName: "[project]/Desktop/craft/craft-connect/src/components/Header/Header.jsx",
-                                    lineNumber: 329,
+                                    lineNumber: 330,
                                     columnNumber: 15
                                 }, this) : user ? /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$Desktop$2f$craft$2f$craft$2d$connect$2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])(__TURBOPACK__imported__module__$5b$project$5d2f$Desktop$2f$craft$2f$craft$2d$connect$2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["Fragment"], {
                                     children: [
@@ -462,20 +465,20 @@ function Header() {
                                                     children: "Sign in"
                                                 }, void 0, false, {
                                                     fileName: "[project]/Desktop/craft/craft-connect/src/components/Header/Header.jsx",
-                                                    lineNumber: 336,
+                                                    lineNumber: 337,
                                                     columnNumber: 19
                                                 }, this),
                                                 /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$Desktop$2f$craft$2f$craft$2d$connect$2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])(__TURBOPACK__imported__module__$5b$project$5d2f$Desktop$2f$craft$2f$craft$2d$connect$2f$node_modules$2f$lucide$2d$react$2f$dist$2f$esm$2f$icons$2f$user$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__$3c$export__default__as__User$3e$__["User"], {
                                                     className: "w-4 h-4"
                                                 }, void 0, false, {
                                                     fileName: "[project]/Desktop/craft/craft-connect/src/components/Header/Header.jsx",
-                                                    lineNumber: 337,
+                                                    lineNumber: 338,
                                                     columnNumber: 19
                                                 }, this)
                                             ]
                                         }, void 0, true, {
                                             fileName: "[project]/Desktop/craft/craft-connect/src/components/Header/Header.jsx",
-                                            lineNumber: 332,
+                                            lineNumber: 333,
                                             columnNumber: 17
                                         }, this),
                                         /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$Desktop$2f$craft$2f$craft$2d$connect$2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("button", {
@@ -486,7 +489,7 @@ function Header() {
                                                     className: "w-4 h-4"
                                                 }, void 0, false, {
                                                     fileName: "[project]/Desktop/craft/craft-connect/src/components/Header/Header.jsx",
-                                                    lineNumber: 343,
+                                                    lineNumber: 344,
                                                     columnNumber: 19
                                                 }, this),
                                                 /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$Desktop$2f$craft$2f$craft$2d$connect$2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("span", {
@@ -494,13 +497,13 @@ function Header() {
                                                     children: "Logout"
                                                 }, void 0, false, {
                                                     fileName: "[project]/Desktop/craft/craft-connect/src/components/Header/Header.jsx",
-                                                    lineNumber: 344,
+                                                    lineNumber: 345,
                                                     columnNumber: 19
                                                 }, this)
                                             ]
                                         }, void 0, true, {
                                             fileName: "[project]/Desktop/craft/craft-connect/src/components/Header/Header.jsx",
-                                            lineNumber: 339,
+                                            lineNumber: 340,
                                             columnNumber: 17
                                         }, this)
                                     ]
@@ -515,20 +518,20 @@ function Header() {
                                                     children: "Sign in"
                                                 }, void 0, false, {
                                                     fileName: "[project]/Desktop/craft/craft-connect/src/components/Header/Header.jsx",
-                                                    lineNumber: 350,
+                                                    lineNumber: 351,
                                                     columnNumber: 19
                                                 }, this),
                                                 /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$Desktop$2f$craft$2f$craft$2d$connect$2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])(__TURBOPACK__imported__module__$5b$project$5d2f$Desktop$2f$craft$2f$craft$2d$connect$2f$node_modules$2f$lucide$2d$react$2f$dist$2f$esm$2f$icons$2f$user$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__$3c$export__default__as__User$3e$__["User"], {
                                                     className: "w-4 h-4 text-gray-700"
                                                 }, void 0, false, {
                                                     fileName: "[project]/Desktop/craft/craft-connect/src/components/Header/Header.jsx",
-                                                    lineNumber: 356,
+                                                    lineNumber: 357,
                                                     columnNumber: 19
                                                 }, this)
                                             ]
                                         }, void 0, true, {
                                             fileName: "[project]/Desktop/craft/craft-connect/src/components/Header/Header.jsx",
-                                            lineNumber: 349,
+                                            lineNumber: 350,
                                             columnNumber: 17
                                         }, this),
                                         /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$Desktop$2f$craft$2f$craft$2d$connect$2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("button", {
@@ -537,7 +540,7 @@ function Header() {
                                             children: "Join"
                                         }, void 0, false, {
                                             fileName: "[project]/Desktop/craft/craft-connect/src/components/Header/Header.jsx",
-                                            lineNumber: 358,
+                                            lineNumber: 359,
                                             columnNumber: 17
                                         }, this)
                                     ]
@@ -545,7 +548,7 @@ function Header() {
                             ]
                         }, void 0, true, {
                             fileName: "[project]/Desktop/craft/craft-connect/src/components/Header/Header.jsx",
-                            lineNumber: 279,
+                            lineNumber: 280,
                             columnNumber: 11
                         }, this),
                         /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$Desktop$2f$craft$2f$craft$2d$connect$2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("button", {
@@ -563,7 +566,7 @@ function Header() {
                                     d: "M6 18L18 6M6 6l12 12"
                                 }, void 0, false, {
                                     fileName: "[project]/Desktop/craft/craft-connect/src/components/Header/Header.jsx",
-                                    lineNumber: 380,
+                                    lineNumber: 381,
                                     columnNumber: 17
                                 }, this) : /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$Desktop$2f$craft$2f$craft$2d$connect$2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("path", {
                                     strokeLinecap: "round",
@@ -572,17 +575,17 @@ function Header() {
                                     d: "M4 6h16M4 12h16M4 18h16"
                                 }, void 0, false, {
                                     fileName: "[project]/Desktop/craft/craft-connect/src/components/Header/Header.jsx",
-                                    lineNumber: 387,
+                                    lineNumber: 388,
                                     columnNumber: 17
                                 }, this)
                             }, void 0, false, {
                                 fileName: "[project]/Desktop/craft/craft-connect/src/components/Header/Header.jsx",
-                                lineNumber: 373,
+                                lineNumber: 374,
                                 columnNumber: 13
                             }, this)
                         }, void 0, false, {
                             fileName: "[project]/Desktop/craft/craft-connect/src/components/Header/Header.jsx",
-                            lineNumber: 369,
+                            lineNumber: 370,
                             columnNumber: 11
                         }, this)
                     ]
@@ -595,7 +598,7 @@ function Header() {
                     className: "h-px bg-amber-500"
                 }, void 0, false, {
                     fileName: "[project]/Desktop/craft/craft-connect/src/components/Header/Header.jsx",
-                    lineNumber: 399,
+                    lineNumber: 400,
                     columnNumber: 9
                 }, this),
                 isMobileMenuOpen && /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$Desktop$2f$craft$2f$craft$2d$connect$2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
@@ -607,7 +610,7 @@ function Header() {
                             children: "Learning"
                         }, void 0, false, {
                             fileName: "[project]/Desktop/craft/craft-connect/src/components/Header/Header.jsx",
-                            lineNumber: 404,
+                            lineNumber: 405,
                             columnNumber: 13
                         }, this),
                         /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$Desktop$2f$craft$2f$craft$2d$connect$2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("a", {
@@ -616,7 +619,7 @@ function Header() {
                             children: "Explore"
                         }, void 0, false, {
                             fileName: "[project]/Desktop/craft/craft-connect/src/components/Header/Header.jsx",
-                            lineNumber: 410,
+                            lineNumber: 411,
                             columnNumber: 13
                         }, this),
                         /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$Desktop$2f$craft$2f$craft$2d$connect$2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("a", {
@@ -625,7 +628,7 @@ function Header() {
                             children: "English"
                         }, void 0, false, {
                             fileName: "[project]/Desktop/craft/craft-connect/src/components/Header/Header.jsx",
-                            lineNumber: 416,
+                            lineNumber: 417,
                             columnNumber: 13
                         }, this),
                         !user && /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$Desktop$2f$craft$2f$craft$2d$connect$2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])(__TURBOPACK__imported__module__$5b$project$5d2f$Desktop$2f$craft$2f$craft$2d$connect$2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["Fragment"], {
@@ -639,7 +642,7 @@ function Header() {
                                     children: "Sign in"
                                 }, void 0, false, {
                                     fileName: "[project]/Desktop/craft/craft-connect/src/components/Header/Header.jsx",
-                                    lineNumber: 424,
+                                    lineNumber: 425,
                                     columnNumber: 17
                                 }, this),
                                 /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$Desktop$2f$craft$2f$craft$2d$connect$2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("button", {
@@ -651,7 +654,7 @@ function Header() {
                                     children: "Join"
                                 }, void 0, false, {
                                     fileName: "[project]/Desktop/craft/craft-connect/src/components/Header/Header.jsx",
-                                    lineNumber: 433,
+                                    lineNumber: 434,
                                     columnNumber: 17
                                 }, this)
                             ]
@@ -659,7 +662,7 @@ function Header() {
                     ]
                 }, void 0, true, {
                     fileName: "[project]/Desktop/craft/craft-connect/src/components/Header/Header.jsx",
-                    lineNumber: 403,
+                    lineNumber: 404,
                     columnNumber: 11
                 }, this)
             ]
