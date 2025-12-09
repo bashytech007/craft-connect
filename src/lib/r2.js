@@ -343,6 +343,29 @@ export const getR2Client = () => {
 /**
  * Get content type from file extension
  */
+// export const getContentTypeFromExtension = (extension) => {
+//   const ext = extension.toLowerCase().replace(".", "");
+//   const contentTypes = {
+//     // Images
+//     jpg: "image/jpeg",
+//     jpeg: "image/jpeg",
+//     png: "image/png",
+//     gif: "image/gif",
+//     webp: "image/webp",
+//     svg: "image/svg+xml",
+//     // Videos
+//     mp4: "video/mp4",
+//     webm: "video/webm",
+//     mov: "video/quicktime",
+//     avi: "video/x-msvideo",
+//     // Documents
+//     pdf: "application/pdf",
+//   };
+
+//   return contentTypes[ext] || "application/octet-stream";
+// };
+
+
 export const getContentTypeFromExtension = (extension) => {
   const ext = extension.toLowerCase().replace(".", "");
   const contentTypes = {
@@ -353,18 +376,20 @@ export const getContentTypeFromExtension = (extension) => {
     gif: "image/gif",
     webp: "image/webp",
     svg: "image/svg+xml",
-    // Videos
+    
+    // Videos - ADD THESE
     mp4: "video/mp4",
     webm: "video/webm",
     mov: "video/quicktime",
     avi: "video/x-msvideo",
+    mkv: "video/x-matroska",
+    m4v: "video/x-m4v",
+    
     // Documents
     pdf: "application/pdf",
   };
-
   return contentTypes[ext] || "application/octet-stream";
 };
-
 /**
  * Generate file key and metadata without creating presigned URL
  * Useful for server-side uploads

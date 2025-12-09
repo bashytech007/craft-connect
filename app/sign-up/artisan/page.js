@@ -2106,6 +2106,9 @@ export default function ArtisanSignUpPage() {
 
   const profilePhotoRef = useRef(null);
   const portfolioRef = useRef(null);
+  const ninFrontRef = useRef(null);
+  const ninBackRef = useRef(null);
+  const selfieRef = useRef(null);
 
   useEffect(() => {
     setMounted(true);
@@ -2123,6 +2126,14 @@ export default function ArtisanSignUpPage() {
     profilePhotoUrl: null,
     profilePhotoPreview: null,
     portfolioUrls: [],
+    // KYC Fields
+    ninType: "National ID",
+    ninFrontUrl: null,
+    ninBackUrl: null,
+    selfieUrl: null,
+    ninFrontPreview: null,
+    ninBackPreview: null,
+    selfiePreview: null,
   });
 
   const [categories, setCategories] = useState([]);
@@ -2133,9 +2144,34 @@ export default function ArtisanSignUpPage() {
       setLoadingCategories(true);
       try {
         const data = await api.getTradeCategories();
-        setCategories(data || []);
+        // Handle different response formats: array, { results: [...] }, or { data: [...] }
+        let categoriesList = [];
+        if (Array.isArray(data)) {
+          categoriesList = data;
+        } else if (data?.results && Array.isArray(data.results)) {
+          categoriesList = data.results;
+        } else if (data?.data && Array.isArray(data.data)) {
+          categoriesList = data.data;
+        } else if (data && typeof data === "object") {
+          // Try to find any array property
+          const arrayKeys = Object.keys(data).filter((key) =>
+            Array.isArray(data[key])
+          );
+          if (arrayKeys.length > 0) {
+            categoriesList = data[arrayKeys[0]];
+          }
+        }
+        setCategories(categoriesList);
+        if (categoriesList.length === 0) {
+          console.warn("No trade categories returned from API");
+        }
       } catch (err) {
         console.error("Failed to load trade categories:", err);
+        console.error("Error details:", {
+          message: err.message,
+          status: err.status,
+          data: err.data,
+        });
         setCategories([]);
       } finally {
         setLoadingCategories(false);
@@ -2293,6 +2329,74 @@ export default function ArtisanSignUpPage() {
     setFormData({ ...formData, portfolioUrls: newPortfolio });
   };
 
+  // Upload NIN Document (Front/Back)
+  const handleNinUpload = async (e, type) => {
+    const file = e.target.files[0];
+    if (!file) return;
+
+    if (file.size > 5 * 1024 * 1024) {
+      setError("Document image must be less than 5MB");
+      return;
+    }
+
+    setError("");
+    const key = type === "front" ? "nin_front" : "nin_back";
+    setUploadProgress({ [key]: 10 });
+
+    try {
+      const userId = tempUserId || "temp_" + Date.now();
+      if (!tempUserId) setTempUserId(userId);
+
+      const result = await handleFileUpload(file, userId, "kyc_document");
+      setUploadProgress({ [key]: 100 });
+
+      setFormData({
+        ...formData,
+        [type === "front" ? "ninFrontUrl" : "ninBackUrl"]: result.url,
+        [type === "front" ? "ninFrontPreview" : "ninBackPreview"]:
+          URL.createObjectURL(file),
+      });
+
+      setUploadProgress({});
+    } catch (err) {
+      setError(err.message || "Failed to upload document");
+      setUploadProgress({});
+    }
+  };
+
+  // Upload Selfie
+  const handleSelfieUpload = async (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+
+    if (file.size > 5 * 1024 * 1024) {
+      setError("Selfie must be less than 5MB");
+      return;
+    }
+
+    setError("");
+    setUploadProgress({ selfie: 10 });
+
+    try {
+      const userId = tempUserId || "temp_" + Date.now();
+      if (!tempUserId) setTempUserId(userId);
+
+      const result = await handleFileUpload(file, userId, "kyc_selfie");
+      setUploadProgress({ selfie: 100 });
+
+      setFormData({
+        ...formData,
+        selfieUrl: result.url,
+        selfiePreview: URL.createObjectURL(file),
+      });
+
+      setUploadProgress({});
+    } catch (err) {
+      setError(err.message || "Failed to upload selfie");
+      setUploadProgress({});
+    }
+  };
+
   // Validation
   const canProceedStep1 =
     formData.firstName &&
@@ -2320,14 +2424,41 @@ export default function ArtisanSignUpPage() {
         tradeCategory: formData.tradeCategory,
         profilePhotoUrl: formData.profilePhotoUrl,
         portfolioUrls: formData.portfolioUrls.map((item) => item.url),
+        // KYC Data
+        ninType: formData.ninType,
+        ninFrontUrl: formData.ninFrontUrl,
+        ninBackUrl: formData.ninBackUrl,
+        selfieUrl: formData.selfieUrl,
       });
+
+      // Store user identifiers from response (check multiple possible field names)
+      const userId =
+        response?.user_id ||
+        response?.userId ||
+        response?.id ||
+        response?.user?.id ||
+        response?.user?.user_id;
+      const userType =
+        response?.user_type ||
+        response?.userType ||
+        response?.user?.user_type ||
+        "artisan";
+
+      // Store in localStorage in both formats for compatibility
+      if (userId) {
+        localStorage.setItem("user_id", userId);
+        localStorage.setItem("userId", userId);
+      }
+      if (userType) {
+        localStorage.setItem("user_type", userType);
+        localStorage.setItem("userType", userType);
+      }
 
       // Check if backend returns auth token (for auto-login)
       if (response?.token || response?.access_token) {
         const token = response.token || response.access_token;
         localStorage.setItem("token", token);
-        localStorage.setItem("userId", response.userId || response.id);
-        localStorage.setItem("userType", "artisan");
+        localStorage.setItem("auth_token", token); // Also store as auth_token for compatibility
 
         setSuccess("🎉 Account created! Taking you to your dashboard...");
         setTimeout(() => {
@@ -2382,12 +2513,34 @@ export default function ArtisanSignUpPage() {
             : [],
       });
 
+      // Store user identifiers from response (check multiple possible field names)
+      const userId =
+        response?.user_id ||
+        response?.userId ||
+        response?.id ||
+        response?.user?.id ||
+        response?.user?.user_id;
+      const userType =
+        response?.user_type ||
+        response?.userType ||
+        response?.user?.user_type ||
+        "artisan";
+
+      // Store in localStorage in both formats for compatibility
+      if (userId) {
+        localStorage.setItem("user_id", userId);
+        localStorage.setItem("userId", userId);
+      }
+      if (userType) {
+        localStorage.setItem("user_type", userType);
+        localStorage.setItem("userType", userType);
+      }
+
       // Check if backend returns auth token
       if (response?.token || response?.access_token) {
         const token = response.token || response.access_token;
         localStorage.setItem("token", token);
-        localStorage.setItem("userId", response.userId || response.id);
-        localStorage.setItem("userType", "artisan");
+        localStorage.setItem("auth_token", token); // Also store as auth_token for compatibility
 
         setSuccess("🎉 Account created! Taking you to your dashboard...");
         setTimeout(() => {
@@ -2472,16 +2625,16 @@ export default function ArtisanSignUpPage() {
             <div className="mb-6">
               <div className="flex items-center justify-between mb-2">
                 <span className="text-sm font-medium text-gray-700">
-                  Step {currentStep} of 4
+                  Step {currentStep} of 6
                 </span>
                 <span className="text-xs text-gray-500">
-                  {Math.round((currentStep / 4) * 100)}% complete
+                  {Math.round((currentStep / 6) * 100)}% complete
                 </span>
               </div>
               <div className="w-full bg-gray-200 rounded-full h-2">
                 <div
                   className="bg-amber-500 h-2 rounded-full transition-all duration-300"
-                  style={{ width: `${(currentStep / 4) * 100}%` }}
+                  style={{ width: `${(currentStep / 6) * 100}%` }}
                 ></div>
               </div>
             </div>
@@ -2746,7 +2899,10 @@ export default function ArtisanSignUpPage() {
                 </div>
               ) : categories.length === 0 ? (
                 <div className="text-center py-8 text-gray-500 bg-gray-50 rounded-lg">
-                  No trades available
+                  <p className="mb-2">No trades available</p>
+                  <p className="text-xs text-gray-400">
+                    You can skip this step and add your trade category later
+                  </p>
                 </div>
               ) : (
                 <div className="grid grid-cols-3 gap-3 max-h-96 overflow-y-auto p-2 bg-gray-50 rounded-lg">
@@ -2990,21 +3146,275 @@ export default function ArtisanSignUpPage() {
                   <ArrowLeft className="w-5 h-5" /> Back
                 </button>
                 <button
-                  onClick={handleSubmit}
+                  onClick={() => setCurrentStep(5)}
                   disabled={loading || isUploading}
                   className="flex-1 bg-amber-500 text-white py-3 rounded-lg font-semibold hover:bg-amber-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                 >
-                  {loading ? "Creating Account..." : "Complete Signup"}
+                  Next: Identity Verification
                 </button>
               </div>
 
-              <button
-                onClick={skipToFinish}
-                disabled={loading || isUploading}
-                className="w-full bg-white border-2 border-gray-300 text-gray-700 py-3 rounded-lg font-semibold hover:bg-gray-50 transition-colors"
-              >
-                Skip & Create Account
-              </button>
+              {formData.portfolioUrls.length === 0 && (
+                <button
+                  onClick={() => setCurrentStep(5)}
+                  disabled={loading || isUploading}
+                  className="w-full bg-white border-2 border-gray-300 text-gray-700 py-3 rounded-lg font-semibold hover:bg-gray-50 transition-colors"
+                >
+                  Skip & Verify Identity
+                </button>
+              )}
+            </div>
+          )}
+
+          {/* STEP 5: Identity Verification (Documents) */}
+          {currentStep === 5 && (
+            <div className="space-y-6">
+              <div className="bg-green-50 border-l-4 border-green-500 p-4 mb-6">
+                <div className="flex items-center justify-between">
+                  <h3 className="font-bold text-lg text-green-800">
+                    Identity Verification
+                  </h3>
+                  <span className="text-sm font-medium text-green-700">
+                    Step 1/2
+                  </span>
+                </div>
+              </div>
+
+              <div>
+                <h3 className="text-xl font-bold text-gray-900 mb-2">
+                  Upload Identity Document
+                </h3>
+                <p className="text-gray-600 text-sm">
+                  Please upload clear, readable image of your Government-issued
+                  identity document. This helps us keep craft connect secure for
+                  everyone.
+                </p>
+              </div>
+
+              {/* ID Type Selection */}
+              <div className="flex p-1 bg-gray-100 rounded-lg">
+                {["National ID", "Licence", "Voter's Card"].map((type) => (
+                  <button
+                    key={type}
+                    onClick={() => setFormData({ ...formData, ninType: type })}
+                    className={`flex-1 py-2 text-sm font-medium rounded-md transition-colors ${
+                      formData.ninType === type
+                        ? "bg-green-500 text-white shadow-sm"
+                        : "text-gray-600 hover:text-gray-900"
+                    }`}
+                  >
+                    {type}
+                  </button>
+                ))}
+              </div>
+
+              <div className="space-y-4">
+                {/* Front of Document */}
+                <div className="border rounded-xl p-4 flex items-center justify-between bg-white shadow-sm">
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 bg-green-100 rounded-lg flex items-center justify-center text-green-600">
+                      <Upload className="w-5 h-5" />
+                    </div>
+                    <div>
+                      <h4 className="font-semibold text-gray-900">
+                        Front of Document
+                      </h4>
+                      <p className="text-xs text-gray-500">
+                        Take a photo or upload file
+                      </p>
+                    </div>
+                  </div>
+
+                  {formData.ninFrontPreview ? (
+                    <div className="relative w-16 h-10">
+                      <img
+                        src={formData.ninFrontPreview}
+                        alt="Front ID"
+                        className="w-full h-full object-cover rounded"
+                      />
+                      <button
+                        onClick={() => {
+                          setFormData({
+                            ...formData,
+                            ninFrontUrl: null,
+                            ninFrontPreview: null,
+                          });
+                          if (ninFrontRef.current)
+                            ninFrontRef.current.value = "";
+                        }}
+                        className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full w-4 h-4 text-xs flex items-center justify-center"
+                      >
+                        ×
+                      </button>
+                    </div>
+                  ) : (
+                    <button
+                      onClick={() => ninFrontRef.current?.click()}
+                      className="px-4 py-2 bg-green-50 text-green-600 text-sm font-semibold rounded-lg hover:bg-green-100 transition-colors"
+                    >
+                      Upload
+                    </button>
+                  )}
+                  <input
+                    ref={ninFrontRef}
+                    type="file"
+                    accept="image/*"
+                    className="hidden"
+                    onChange={(e) => handleNinUpload(e, "front")}
+                  />
+                </div>
+
+                {/* Back of Document */}
+                <div className="border rounded-xl p-4 flex items-center justify-between bg-white shadow-sm">
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 bg-green-100 rounded-lg flex items-center justify-center text-green-600">
+                      <Upload className="w-5 h-5" />
+                    </div>
+                    <div>
+                      <h4 className="font-semibold text-gray-900">
+                        Back of Document
+                      </h4>
+                      <p className="text-xs text-gray-500">
+                        Take a photo or upload file
+                      </p>
+                    </div>
+                  </div>
+
+                  {formData.ninBackPreview ? (
+                    <div className="relative w-16 h-10">
+                      <img
+                        src={formData.ninBackPreview}
+                        alt="Back ID"
+                        className="w-full h-full object-cover rounded"
+                      />
+                      <button
+                        onClick={() => {
+                          setFormData({
+                            ...formData,
+                            ninBackUrl: null,
+                            ninBackPreview: null,
+                          });
+                          if (ninBackRef.current) ninBackRef.current.value = "";
+                        }}
+                        className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full w-4 h-4 text-xs flex items-center justify-center"
+                      >
+                        ×
+                      </button>
+                    </div>
+                  ) : (
+                    <button
+                      onClick={() => ninBackRef.current?.click()}
+                      className="px-4 py-2 bg-green-50 text-green-600 text-sm font-semibold rounded-lg hover:bg-green-100 transition-colors"
+                    >
+                      Upload
+                    </button>
+                  )}
+                  <input
+                    ref={ninBackRef}
+                    type="file"
+                    accept="image/*"
+                    className="hidden"
+                    onChange={(e) => handleNinUpload(e, "back")}
+                  />
+                </div>
+              </div>
+
+              <div className="flex gap-3 mt-8">
+                <button
+                  onClick={() => setCurrentStep(4)}
+                  className="px-6 py-3 border-2 border-gray-300 rounded-lg font-semibold hover:bg-gray-50 flex items-center gap-2"
+                >
+                  <ArrowLeft className="w-5 h-5" /> Back
+                </button>
+                <button
+                  onClick={() => setCurrentStep(6)}
+                  disabled={!formData.ninFrontUrl || !formData.ninBackUrl}
+                  className="flex-1 bg-green-500 text-white py-3 rounded-lg font-semibold hover:bg-green-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  Next: Selfie Verification
+                </button>
+              </div>
+
+              <div className="text-center text-xs text-gray-400 flex items-center justify-center gap-1">
+                🔒 Your information is safe and securely stored
+              </div>
+            </div>
+          )}
+
+          {/* STEP 6: Identity Verification (Selfie) */}
+          {currentStep === 6 && (
+            <div className="space-y-6">
+              <div className="bg-green-50 border-l-4 border-green-500 p-4 mb-6">
+                <div className="flex items-center justify-between">
+                  <h3 className="font-bold text-lg text-green-800">
+                    Identity Verification
+                  </h3>
+                  <span className="text-sm font-medium text-green-700">
+                    Step 2/2
+                  </span>
+                </div>
+              </div>
+
+              <div className="text-center">
+                <h3 className="text-xl font-bold text-gray-900 mb-2">
+                  Take a Selfie
+                </h3>
+                <p className="text-gray-600 text-sm">
+                  Position your face in the oval frame below
+                </p>
+              </div>
+
+              <div className="relative w-64 h-80 mx-auto bg-gray-100 rounded-3xl overflow-hidden border-4 border-white shadow-lg">
+                {formData.selfiePreview ? (
+                  <img
+                    src={formData.selfiePreview}
+                    alt="Selfie"
+                    className="w-full h-full object-cover"
+                  />
+                ) : (
+                  <div className="w-full h-full flex flex-col items-center justify-center bg-gray-800">
+                    <div className="w-48 h-64 border-4 border-green-500/50 rounded-[50%] absolute top-8"></div>
+                    <span className="text-white/50 text-sm mt-auto mb-4">
+                      No image captured
+                    </span>
+                  </div>
+                )}
+
+                {/* Camera Overlay/Button */}
+                <div className="absolute bottom-4 left-0 right-0 flex justify-center">
+                  <button
+                    onClick={() => selfieRef.current?.click()}
+                    className="bg-green-500 text-white p-4 rounded-full hover:bg-green-600 transition-transform hover:scale-105 shadow-lg"
+                  >
+                    <Camera className="w-8 h-8" />
+                  </button>
+                </div>
+
+                <input
+                  ref={selfieRef}
+                  type="file"
+                  accept="image/*"
+                  capture="user"
+                  className="hidden"
+                  onChange={handleSelfieUpload}
+                />
+              </div>
+
+              <div className="flex gap-3 mt-8">
+                <button
+                  onClick={() => setCurrentStep(5)}
+                  className="px-6 py-3 border-2 border-gray-300 rounded-lg font-semibold hover:bg-gray-50 flex items-center gap-2"
+                >
+                  <ArrowLeft className="w-5 h-5" /> Back
+                </button>
+                <button
+                  onClick={handleSubmit}
+                  disabled={loading || !formData.selfieUrl}
+                  className="flex-1 bg-green-500 text-white py-3 rounded-lg font-semibold hover:bg-green-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  {loading ? "Verifying..." : "Submit for Verification"}
+                </button>
+              </div>
             </div>
           )}
         </div>
