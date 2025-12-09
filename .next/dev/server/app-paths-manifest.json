@@ -1,6 +1,0 @@
-{
-  "/api/proxy/[...path]/route": "app/api/proxy/[...path]/route.js",
-  "/page": "app/page.js",
-  "/profile/page": "app/profile/page.js",
-  "/sign-in/page": "app/sign-in/page.js"
-}
